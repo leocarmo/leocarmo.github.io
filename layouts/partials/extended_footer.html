@@ -1,0 +1,12 @@
+<script>
+    window.onload = function(){
+        let anchors = document.getElementsByTagName('a');
+        let hostname = window.location.hostname;
+        for (let i = 0; i < anchors.length; i++){
+            if (anchors[i].href.includes(hostname)) {
+                continue;
+            }
+            anchors[i].setAttribute('target', '_blank');
+        }
+    }
+</script>
