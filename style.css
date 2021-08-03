@@ -5,7 +5,7 @@
 body {
     font-family: 'Inter', sans-serif;
     font-size: 1.125rem;
-    background-color: #0E1117;
+    background-color: #202124;
 }
 
 img.post-cover {
@@ -19,4 +19,8 @@ img.post-cover {
 
 .post .post-content a {
     color: var(--accent);
+}
+
+.headings--one-size h1:not(first-child), .headings--one-size h2:not(first-child), .headings--one-size h3:not(first-child), .headings--one-size h4:not(first-child), .headings--one-size h5:not(first-child), .headings--one-size h6:not(first-child) {
+    margin-top: 15px;
 }
