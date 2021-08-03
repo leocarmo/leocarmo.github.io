@@ -1,5 +1,9 @@
 /** custom css **/
 
+body {
+    background-color: #0E1117;
+}
+
 img.post-cover {
     display: none;
 }
