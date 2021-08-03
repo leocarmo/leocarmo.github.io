@@ -1,5 +1,6 @@
 +++
 title = "Hyperf - PHP Coroutine Framework baseado em Swoole"
+slug = "hyperf-php-coroutine-framework-baseado-em-swoole"
 author = "leocarmo"
 date = "2021-07-15T19:30:00-03:00"
 tags = ["php", "swoole", "hyperf"]

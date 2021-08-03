@@ -1,7 +1,8 @@
 +++
 title = "Ambiente de desenvolvimento das galáxias usando Docker"
+slug = "ambiente-de-desenvolvimento-das-galaxias-usando-docker"
 author = "leocarmo"
-date = "2021-07-21T19:30:00-03:00"
+date = "2021-08-03T10:00:00-03:00"
 tags = ["docker", "kafka", "redis", "mysql", "mariadb", "postgres", "mongodb"]
 description = "Tenha um ambiente de desenvolvimento completo com as principais ferramentas usando Docker."
 cover = "/ambiente-de-desenvolvimento-das-galaxias-usando-docker/images/cover.jpeg"

@@ -16,7 +16,7 @@ enableEmoji = true
   # favicon = "favicon.ico"
 
 [permalinks]
-  post = "/:title"
+  post = "/:slug"
 
 [languages]
   [languages.en]

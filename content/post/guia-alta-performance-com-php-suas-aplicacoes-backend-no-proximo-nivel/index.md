@@ -1,5 +1,6 @@
 +++
 title = "Guia: Alta performance com PHP — Suas aplicações backend no próximo nível"
+slug = "guia-alta-performance-com-php-suas-aplicacoes-backend-no-proximo-nivel"
 author = "leocarmo"
 date = "2020-05-12T19:30:00-03:00"
 tags = ["php", "swoole", "php-fpm", "opcache"]

@@ -1,5 +1,6 @@
 +++
 title = "Graceful Shutdown com PHP - Evitando data corruption"
+slug = "graceful-shutdown-com-php-evitando-data-corruption"
 author = "leocarmo"
 date = "2021-05-10T19:24:26-03:00"
 tags = ["php", "kubernetes", "pcntl"]
