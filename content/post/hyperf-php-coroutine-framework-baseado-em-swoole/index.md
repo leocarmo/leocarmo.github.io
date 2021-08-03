@@ -185,9 +185,9 @@ Eu queria destacar um dos itens acima que achei super interessante, o arquivo `d
 
 ## 5. Melhorando o ambiente
 
-Na próxima seção, vamos iniciar com uma ideia básica de CRUD. Mas antes, vamos fazer uma melhoria no nosso `docker-compose-yaml` para ajudar no nosso desenvolvimento, adicionando o nosso banco de dados e o Redis (que vamos utilizar mais adiante).
+Na próxima seção, vamos iniciar com uma ideia básica de CRUD. Mas antes, vamos fazer uma melhoria no nosso `docker-compose.yaml` para ajudar no nosso desenvolvimento, adicionando o nosso banco de dados e o Redis (que vamos utilizar mais adiante).
 
-Atualize o arquivo `docker-compose-yaml` para:
+Atualize o arquivo `docker-compose.yaml` para:
 
 ```docker
 version: '3.9'
@@ -402,7 +402,7 @@ Essa é uma estrutura extremamente básica, e com alguns problemas... Contudo, a
 - [Response](https://hyperf.wiki/2.1/#/en/response)
 - [Event Dispatcher](https://hyperf.wiki/2.1/#/en/event)
 
-Todos os itens acima tem uma boa documentação e com bons exemplos. Você consegue implementar tudo isso nesse simples CRUD para exercitar os recursos do Hyperf.
+Todos os itens acima têm uma boa documentação e com bons exemplos. Você consegue implementar tudo isso nesse simples CRUD para exercitar os recursos do Hyperf.
 
 Ainda tenho uma ideia bônus: crie uma interface e uma implementação para a Repository Pattern refatorando este código e injete via [Dependency Injection](https://hyperf.wiki/2.1/#/en/di), tenho certeza que será bacana entender este fluxo.
 

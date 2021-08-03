@@ -5,7 +5,6 @@ date = "2021-07-21T19:30:00-03:00"
 tags = ["docker", "kafka", "redis", "mysql", "mariadb", "postgres", "mongodb"]
 description = "Tenha um ambiente de desenvolvimento completo com as principais ferramentas usando Docker."
 cover = "/ambiente-de-desenvolvimento-das-galaxias-usando-docker/images/cover.jpeg"
-draft = true
 +++
 
 Criar um ambiente de desenvolvimento local pode parecer um desafio. Quem nunca sofreu *~ pelo menos um pouco ~* para conseguir ter as dependências rodando na sua maquina para criar um projeto?
