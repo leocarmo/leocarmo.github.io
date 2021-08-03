@@ -1,11 +1,20 @@
 /** custom css **/
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&display=swap');
+
 body {
+    font-family: 'Inter', sans-serif;
+    font-size: 1.125rem;
     background-color: #0E1117;
 }
 
 img.post-cover {
     display: none;
+}
+
+.post .post-content p {
+    line-height: 1.7777778;
+    letter-spacing: -0.025em;
 }
 
 .post .post-content a {
