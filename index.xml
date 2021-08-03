@@ -1,0 +1,906 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>leocarmo.dev</title><link>/</link><description>Recent content on leocarmo.dev</description><generator>Hugo -- gohugo.io</generator><language>en</language><copyright>leocarmo.dev</copyright><lastBuildDate>Tue, 03 Aug 2021 10:00:00 -0300</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml"/><item><title>Ambiente de desenvolvimento das galáxias usando Docker</title><link>/ambiente-de-desenvolvimento-das-galaxias-usando-docker/</link><pubDate>Tue, 03 Aug 2021 10:00:00 -0300</pubDate><guid>/ambiente-de-desenvolvimento-das-galaxias-usando-docker/</guid><description>Criar um ambiente de desenvolvimento local pode parecer um desafio. Quem nunca sofreu ~ pelo menos um pouco ~ para conseguir ter as dependências rodando na sua maquina para criar um projeto?
+Pois é, normalmente passamos por isso quase sempre. Antes de conhecer o Docker, isso era muito mais difícil&amp;hellip; Ter que subir um banco de dados localmente sempre dava algum tipo de dor de cabeça, ainda mais quando era preciso ter uma versão específica por conta de algum projeto já existente que precisava de manutenção.</description><content>&lt;p>Criar um ambiente de desenvolvimento local pode parecer um desafio. Quem nunca sofreu &lt;em>~ pelo menos um pouco ~&lt;/em> para conseguir ter as dependências rodando na sua maquina para criar um projeto?&lt;/p>
+&lt;p>Pois é, normalmente passamos por isso quase sempre. Antes de conhecer o &lt;a href="https://www.docker.com/">Docker&lt;/a>, isso era muito mais difícil&amp;hellip; Ter que subir um banco de dados localmente sempre dava algum tipo de dor de cabeça, ainda mais quando era preciso ter uma versão específica por conta de algum projeto já existente que precisava de manutenção.&lt;/p>
+&lt;p>A ideia é te ajudar a montar um ambiente de desenvolvimento local de forma fácil e rápida usando tudo com Docker. Além disso, vou te mostrar algumas ferramentas de apoio que podem ajudar muito na hora de debugar algumas coisas.&lt;/p>
+&lt;p>É importante que você tenha pelo menos uma base sobre Docker e &lt;a href="https://docs.docker.com/compose/">Docker Compose&lt;/a> e claro, tenha ele &lt;a href="https://www.docker.com/products/docker-desktop">instalado&lt;/a> na sua máquina.&lt;/p>
+&lt;p>Para facilitar, sugiro que você clone o projeto que deixei preparado para este artigo com todos os arquivos prontos:&lt;/p>
+&lt;p>&lt;a href="https://github.com/leocarmo/docker-local-stack">https://github.com/leocarmo/docker-local-stack&lt;/a>&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">git clone git@github.com:leocarmo/docker-local-stack.git
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Antes de iniciar as ferramentas, criaremos uma &lt;a href="https://docs.docker.com/network/">rede para nossos containers&lt;/a>, pois teremos vários arquivos diferentes para nossas stacks, assim você pode escolher de forma mais fácil qual utilizar e quando.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker network create global-default
+&lt;/code>&lt;/pre>&lt;/div>&lt;hr>
+&lt;p>Tópicos:&lt;/p>
+&lt;ol>
+&lt;li>&lt;a href="#1-visibilidade-de-containers">Visibilidade de containers&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#2-redis">Redis&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#3-kafka">Kafka&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#4-mongodb">MongoDB&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#5-elasticsearch">ElasticSearch&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#6-databases">Databases&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#7-mock">Mock&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#8-aws">AWS&lt;/a>&lt;/li>
+&lt;/ol>
+&lt;hr>
+&lt;h2 id="1-visibilidade-de-containers">1. Visibilidade de containers&lt;/h2>
+&lt;p>A primeira ferramenta que gosto de usa é o &lt;a href="https://dockstation.io/">DockStation&lt;/a>, infelizmente ele precisa ser instalado na sua máquina, prometo que será o único.&lt;/p>
+&lt;p>Ele tem uma infinidade de ferramentas para te ajudar a gerenciar melhor seus containers, o que precisaremos em breve, e uma interface bem amigável.&lt;/p>
+&lt;p>Aqui tem um preview dele:&lt;/p>
+&lt;p>&lt;img src="https://cdn.hashnode.com/res/hashnode/image/upload/v1626463235111/WL8MPPAnBw.png" alt="DockStation">&lt;/p>
+&lt;p>De qualquer forma, caso você não queira instalar nada na sua máquina, existe uma alternativa que é o &lt;a href="https://www.portainer.io/">Portainer&lt;/a>, ele pode ser iniciado via container, e também tem diversas ferramentas disponíveis para te ajudar.&lt;/p>
+&lt;p>&lt;img src="https://cdn.hashnode.com/res/hashnode/image/upload/v1626464059771/lyRrNLO6X.png" alt="Portainer">&lt;/p>
+&lt;p>O exemplo para rodar via &lt;code>compose&lt;/code> está &lt;a href="https://github.com/leocarmo/docker-local-stack/blob/main/container-visibility/docker-compose-portainer.yaml">aqui&lt;/a>.&lt;/p>
+&lt;p>Para iniciar o Portainer:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker compose -f container-visibility/docker-compose-portainer.yaml up -d
+&lt;/code>&lt;/pre>&lt;/div>&lt;hr>
+&lt;h2 id="2-redis">2. Redis&lt;/h2>
+&lt;p>Falando sobre &lt;a href="https://redis.io/">Redis&lt;/a>, normalmente usamos ele de duas formas: single node ou cluster. Ainda temos outra ferramenta que traz uma visibilidade incrível, evitando que seja preciso criar código para debugar chaves, consumo de recursos e ainda consegue sugerir melhorias nas buscas, por exemplo. Falaremos dela em breve.&lt;/p>
+&lt;p>Começando pelo Redis single node, &lt;a href="https://github.com/leocarmo/docker-local-stack/blob/main/redis/docker-compose-single.yaml">esse aqui&lt;/a> é um exemplo do &lt;code>compose&lt;/code>. Para iniciar:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker compose -f redis/docker-compose-single.yaml up -d
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Sim, bem simples. Agora montaremos um cluster. Para isso, utilizaremos as imagens da &lt;a href="https://bitnami.com/">Bitnami&lt;/a>, eles possuem diversas outras ferramentas já prontas para utilizar também, vale a pena dar uma olhada.&lt;/p>
+&lt;blockquote>
+&lt;p>Vale pontuar que não é uma imagem oficial do Redis como a do single node. É possível criar um cluster utilizando a imagem oficial, mas nosso foco aqui é para desenvolvimento local, então utilizaremos o que é mais fácil e rápido para ter rodando.&lt;/p>
+&lt;/blockquote>
+&lt;p>O repositório com o &lt;code>docker-compose&lt;/code> original da Bitnami está no &lt;a href="https://github.com/bitnami/bitnami-docker-redis-cluster">github&lt;/a> deles, porém, realizei algumas pequenas modificações para que ele possa ter contato com todos os outros containers que utilizaremos aqui.&lt;/p>
+&lt;p>O &lt;code>compose&lt;/code> do Redis cluster com algumas pequenas mudanças que fiz está &lt;a href="https://github.com/leocarmo/docker-local-stack/blob/main/redis/docker-compose-cluster.yaml">aqui&lt;/a>. Para iniciar:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker compose -f redis/docker-compose-cluster.yaml up -d
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Ótimo, agora temos um single node e um cluster de Redis funcionando!&lt;/p>
+&lt;p>Vou te mostrar uma ferramenta que gosto muito, o &lt;a href="https://redislabs.com/redis-enterprise/redis-insight/">RedisInsight&lt;/a>, que é uma GUI para interagir com o Redis (por isso modifiquei tudo para ficar na &lt;code>network global-default&lt;/code>).&lt;/p>
+&lt;p>&lt;img src="https://cdn.hashnode.com/res/hashnode/image/upload/v1626467588436/4D_s2nTu-.png" alt="RedisInsight">&lt;/p>
+&lt;p>Então nosso &lt;code>compose&lt;/code> do RedisInsight fica &lt;a href="https://github.com/leocarmo/docker-local-stack/blob/main/redis/docker-compose-insight.yaml">assim&lt;/a>. Para iniciar:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker compose -f redis/docker-compose-insight.yaml up -d
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Para conectar o RedisInsight ao nosso cluster ou ao single node é bem simples, ele fica neste endereço: &lt;a href="http://0.0.0.0:8001/">http://0.0.0.0:8001/&lt;/a>. Depois, basta selecionar que você já possui um database e colocar as informações para conectar. Um exemplo para conectar no cluster:&lt;/p>
+&lt;p>&lt;img src="https://cdn.hashnode.com/res/hashnode/image/upload/v1626467726998/oKqgGWqRTc.png" alt="image.png">&lt;/p>
+&lt;blockquote>
+&lt;p>Não esqueça da senha: &lt;em>redis&lt;/em>&lt;/p>
+&lt;/blockquote>
+&lt;hr>
+&lt;h2 id="3-kafka">3. Kafka&lt;/h2>
+&lt;p>Para ter um cluster de &lt;a href="https://www.confluent.io/what-is-apache-kafka/">Apache Kafka&lt;/a> rodando, precisamos do &lt;a href="https://zookeeper.apache.org/">ZooKeeper&lt;/a>. É bem simples também, &lt;a href="https://github.com/leocarmo/docker-local-stack/blob/main/kafka/docker-compose-cluster.yaml">aqui&lt;/a> tem o &lt;code>compose&lt;/code> com tudo isso, sendo um cluster de Kafka com 3 brokers. Para rodar:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker compose -f kafka/docker-compose-cluster.yaml up -d
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>O destaque aqui vai para a ferramenta &lt;a href="https://github.com/cloudhut/kowl">Kowl&lt;/a>, que é uma UI para o Kafka, gostei bastante dela comparada a outras.&lt;/p>
+&lt;p>&lt;img src="https://github.com/cloudhut/kowl/raw/master/docs/assets/preview.gif" alt="Kowl Kafka">&lt;/p>
+&lt;p>O Kowl ficará disponível em &lt;a href="http://0.0.0.0:8080/">http://0.0.0.0:8080/&lt;/a>.&lt;/p>
+&lt;p>Ele tem a versão open-source, mas também tem uma versão Business, enquanto ela está na versão beta, você pode conseguir uma licença limitada, porém gratuita e eterna &lt;a href="https://license.cloudhut.dev/">aqui&lt;/a>.&lt;/p>
+&lt;blockquote>
+&lt;p>Até o dia de hoje, ainda está liberado, então aproveita!&lt;/p>
+&lt;/blockquote>
+&lt;hr>
+&lt;h2 id="4-mongodb">4. MongoDB&lt;/h2>
+&lt;p>Para o Mongo, foi bem simples montar algo que já resolva localmente nossa necessidade. Coloquei também o &lt;a href="https://github.com/mongo-express/mongo-express">mongo-express&lt;/a> no &lt;code>compose&lt;/code> para ajudar no debug.&lt;/p>
+&lt;p>&lt;img src="https://cdn.hashnode.com/res/hashnode/image/upload/v1626477968205/cU65kS0bc.png" alt="mongo-express">&lt;/p>
+&lt;p>O &lt;code>compose&lt;/code> final está &lt;a href="https://github.com/leocarmo/docker-local-stack/blob/main/mongodb/docker-compose-single.yaml">aqui&lt;/a>. Caso queira ver mais parâmetros disponíveis na imagem oficial, você pode acessar &lt;a href="https://hub.docker.com/_/mongo">aqui&lt;/a>. Para rodar:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker compose -f mongodb/docker-compose-single.yaml up -d
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>O mongo-express ficará disponível em &lt;a href="http://0.0.0.0:8081/">http://0.0.0.0:8081/&lt;/a>.&lt;/p>
+&lt;p>Caso você precise de algo mais robusto, a Bitnami também tem um &lt;code>compose&lt;/code> pronto com múltiplos shards, vale a pena conferir &lt;a href="https://github.com/bitnami/bitnami-docker-mongodb-sharded/blob/master/docker-compose-multiple-shards.yml">aqui&lt;/a>.&lt;/p>
+&lt;hr>
+&lt;h2 id="5-elasticsearch">5. ElasticSearch&lt;/h2>
+&lt;p>Este também foi fácil, a própria &lt;a href="https://www.elastic.co/guide/en/elastic-stack-get-started/current/get-started-docker.html">documentação oficial&lt;/a> disponibiliza um &lt;code>compose&lt;/code> praticamente pronto, eu apenas reduzi um node, acredito que dois já são suficientes para desenvolvimento local, o link está &lt;a href="https://github.com/leocarmo/docker-local-stack/blob/main/elasticsearch/docker-compose-cluster.yaml">aqui&lt;/a>. Para rodar:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker compose -f elasticsearch/docker-compose-cluster.yaml up -d
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>O ElasticSearch ficará disponível em &lt;a href="http://0.0.0.0:9200/">http://0.0.0.0:9200/&lt;/a> e o Kibana em &lt;a href="http://0.0.0.0:5601/">http://0.0.0.0:5601/&lt;/a>.&lt;/p>
+&lt;p>O destaque aqui vai para o &lt;a href="https://github.com/lmenezes/cerebro">Cerebro&lt;/a>, uma UI que ajuda bastante na hora de entender como está a distribuição dos shards, consumo de recurso, entre outras informações importantes do cluster.&lt;/p>
+&lt;p>&lt;img src="https://cdn.hashnode.com/res/hashnode/image/upload/v1626479198955/m7NkaWdQr.png" alt="Cerebro">&lt;/p>
+&lt;p>O &lt;code>compose&lt;/code> do Cerebro está &lt;a href="https://github.com/leocarmo/docker-local-stack/blob/main/elasticsearch/docker-compose-cerebro.yaml">aqui&lt;/a> e ficará disponível em &lt;a href="http://0.0.0.0:9000/">http://0.0.0.0:9000/&lt;/a>. Para rodar:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker compose -f elasticsearch/docker-compose-cerebro.yaml up -d
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Para começar usar é simples, basta colocar o endereço do ElasticSearch, no nosso caso o nome do container e a porta: &lt;code>http://es01:9200&lt;/code>.&lt;/p>
+&lt;hr>
+&lt;h2 id="6-databases">6. Databases&lt;/h2>
+&lt;p>Nesta seção, deixei os principais bancos preparados: &lt;a href="https://hub.docker.com/_/mariadb">MariaDB&lt;/a>, &lt;a href="https://hub.docker.com/_/mysql">MySQL&lt;/a> e o &lt;a href="https://hub.docker.com/_/postgres">Postgres&lt;/a> com &lt;a href="https://www.pgadmin.org/">pgAdmin4&lt;/a>.&lt;/p>
+&lt;p>Também são bem simples, o &lt;code>compose&lt;/code> do MariaDB está &lt;a href="https://github.com/leocarmo/docker-local-stack/blob/main/databases/docker-compose-mariadb.yaml">aqui&lt;/a>, do MySQL &lt;a href="https://github.com/leocarmo/docker-local-stack/blob/main/databases/docker-compose-mysql.yaml">aqui&lt;/a> e do Postgres &lt;a href="https://github.com/leocarmo/docker-local-stack/blob/main/databases/docker-compose-postgres.yaml">aqui&lt;/a>. Para rodar cada um:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker compose -f databases/docker-compose-mariadb.yaml up -d
+docker compose -f databases/docker-compose-mysql.yaml up -d
+docker compose -f databases/docker-compose-postgres.yaml up -d
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Ao subir os containers, os volumes serão criados em &lt;code>databases/var&lt;/code>, no mesmo diretório dos arquivos do &lt;code>compose&lt;/code>.&lt;/p>
+&lt;p>Para gerenciar o Postgres, o pgAdmin estará disponível em &lt;a href="http://0.0.0.0:5050/">http://0.0.0.0:5050/&lt;/a>:&lt;/p>
+&lt;p>&lt;img src="https://cdn.hashnode.com/res/hashnode/image/upload/v1626483179054/OYLK7Q5QT.png" alt="pgAdmin">&lt;/p>
+&lt;p>Para gerenciar o MariaDB e MySQL, sugiro utilizar o &lt;a href="https://dev.mysql.com/downloads/workbench/">MySQL Workbench&lt;/a>, que infelizmente não tem sua versão em container&amp;hellip; Mas vale a pena, ele é muito completo e vai te ajudar bastante.&lt;/p>
+&lt;p>&lt;img src="https://cdn.hashnode.com/res/hashnode/image/upload/v1626483359586/3AK3FMQhK.png" alt="MySQL Workbench">&lt;/p>
+&lt;hr>
+&lt;h2 id="7-mock">7. Mock&lt;/h2>
+&lt;p>Sempre que estamos desenvolvendo microsserviços, em algum momento vamos nos deparar com alguma dependência externa, e isso pode ser uma grande dor de cabeça.&lt;/p>
+&lt;p>Para ajudar nessa questão, gosto muito de utilizar um &lt;a href="https://www.mock-server.com/#what-is-mockserver">serviço de mock&lt;/a> para desenvolvimento. Além de ajudar muito da hora de codar, pode ser muito útil também para realização de testes, por exemplo. &lt;a href="https://www.mock-server.com/#why-use-mockserver">Aqui&lt;/a> tem mais alguns benefícios de se utilizar.&lt;/p>
+&lt;p>Venho utilizando o &lt;a href="https://www.mock-server.com/">MockServer&lt;/a>, ele é bem customizável, possui inúmeras funcionalidades, é bem fácil de configurar, possui uma &lt;a href="https://www.mock-server.com/mock_server/mockserver_ui.html">UI&lt;/a> para debug bem bacana e a documentação é bem completa.&lt;/p>
+&lt;p>&lt;img src="https://cdn.hashnode.com/res/hashnode/image/upload/v1626709516128/cHznYZYh-.png" alt="MockServer">&lt;/p>
+&lt;p>O &lt;code>compose&lt;/code> dele está &lt;a href="https://github.com/leocarmo/docker-local-stack/blob/main/mock/docker-compose.yaml">aqui&lt;/a>, e dentro da mesma pasta existe um arquivo de configurações, caso você queira mudar essas configurações, basta seguir &lt;a href="https://www.mock-server.com/mock_server/getting_started.html">esta documentação&lt;/a>. Para rodar:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker compose -f mock/docker-compose.yaml up -d
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Após subir os containers, a UI estará disponível em: &lt;a href="http://0.0.0.0:1080/mockserver/dashboard">http://0.0.0.0:1080/mockserver/dashboard&lt;/a>, e caso você não tenha alterado o arquivo de configurações, a rota de testes será:
+&lt;a href="http://0.0.0.0:1080/hello">http://0.0.0.0:1080/hello&lt;/a>&lt;/p>
+&lt;hr>
+&lt;h2 id="8-aws">8. AWS&lt;/h2>
+&lt;p>Com certeza não poderia faltar o &lt;a href="https://github.com/localstack/localstack">AWS LocalStack&lt;/a>. Então se você não conhece esse projeto e usa AWS, recomendo dar uma olhada.&lt;/p>
+&lt;p>Apesar de muito útil, pode dar algum trabalho configurar alguns recursos nele, mas após configurado corretamente, pode salvar muito tempo tentando resolver algo direto pela AWS, além de economizar na conta rsrs.&lt;/p>
+&lt;p>A ideia aqui é deixar um &lt;a href="https://aws.amazon.com/pt/sqs/">SQS&lt;/a> configurado e rodando. Para configurar outros recursos basta dar uma olhada na &lt;a href="https://localstack.cloud/docs/">documentação oficial&lt;/a>.&lt;/p>
+&lt;p>O &lt;code>compose&lt;/code> do SQS está &lt;a href="https://github.com/leocarmo/docker-local-stack/blob/main/databases/docker-compose-postgres.yaml">aqui&lt;/a>. Para iniciar:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker compose -f aws/docker-compose-sqs.yaml up
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Se tudo der certo, você verá a seguinte mensagem no console de que o mock do SQS subiu com sucesso na porta 4566:&lt;/p>
+&lt;p>&lt;img src="https://cdn.hashnode.com/res/hashnode/image/upload/v1626712220281/JAlS_k_VV.png" alt="SQS LocalStack">&lt;/p>
+&lt;blockquote>
+&lt;p>Repare na segunda linha a mensagem: Starting mock SQS service on http port 4566 &amp;hellip;&lt;/p>
+&lt;/blockquote>
+&lt;p>O LocalStack também sobre uma rota de heath check, que fica disponível em &lt;a href="https://0.0.0.0:4566/health">https://0.0.0.0:4566/health&lt;/a>, lá você deveria ver o seguinte json:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-json" data-lang="json">{
+&lt;span style="color:#f92672">&amp;#34;services&amp;#34;&lt;/span>: {
+&lt;span style="color:#f92672">&amp;#34;sqs&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;running&amp;#34;&lt;/span>
+},
+&lt;span style="color:#f92672">&amp;#34;features&amp;#34;&lt;/span>: {
+&lt;span style="color:#f92672">&amp;#34;persistence&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;disabled&amp;#34;&lt;/span>,
+&lt;span style="color:#f92672">&amp;#34;initScripts&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;initialized&amp;#34;&lt;/span>
+}
+}
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Ótimo, com tudo isso funcionando, utilizaremos esse serviço. Primeiro, precisamos criar uma fila, pois só subimos o serviço. Para isso, utilizamos o &lt;a href="https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html">aws-cli&lt;/a>.&lt;/p>
+&lt;p>Criando uma fila no SQS:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">aws --endpoint-url&lt;span style="color:#f92672">=&lt;/span>http://0.0.0.0:4566 sqs create-queue --queue-name my-queue
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Para verificar se a fila foi criada com sucesso utilize o comando:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">aws --endpoint-url&lt;span style="color:#f92672">=&lt;/span>http://0.0.0.0:4566 sqs list-queues
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Agora enviaremos uma mensagem para a fila que criamos:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">aws --endpoint-url&lt;span style="color:#f92672">=&lt;/span>http://0.0.0.0:4566 sqs send-message --queue-url http://0.0.0.0:4566/000000000000/my-queue --message-body &lt;span style="color:#e6db74">&amp;#39;Hello SQS World&amp;#39;&lt;/span>
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Para ler a mensagem que acabamos de criar:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">aws --endpoint-url&lt;span style="color:#f92672">=&lt;/span>http://0.0.0.0:4566 sqs receive-message --queue-url http://0.0.0.0:4566/000000000000/my-queue
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Para acessar a lista completa de comandos do SQS via aws-cli acesse a &lt;a href="https://awscli.amazonaws.com/v2/documentation/api/latest/reference/sqs/index.html#cli-aws-sqs">documentação oficial&lt;/a>.&lt;/p>
+&lt;hr>
+&lt;blockquote>
+&lt;p>Dica: caso voce já tenha uma network criada para suas aplicações, basta &lt;a href="https://docs.docker.com/engine/reference/commandline/network_connect/">conectar&lt;/a> os containers criados aqui com a sua network usando este comando:&lt;/p>
+&lt;/blockquote>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker network connect my-network redis-single
+&lt;/code>&lt;/pre>&lt;/div>&lt;blockquote>
+&lt;p>Importante: para as stacks em cluster, é preciso conectar cada container na sua network.&lt;/p>
+&lt;/blockquote>
+&lt;hr>
+&lt;p>Basicamente com essa stack muitos dos problemas do dia a dia podem ser resolvidos. Espero que te ajude de alguma forma no seu fluxo de desenvolvimento local.&lt;/p>
+&lt;p>Alguma sugestão de alguma ferramenta que faltou aqui? Deixa nos comentários!&lt;/p></content></item><item><title>Hyperf - PHP Coroutine Framework baseado em Swoole</title><link>/hyperf-php-coroutine-framework-baseado-em-swoole/</link><pubDate>Thu, 15 Jul 2021 19:30:00 -0300</pubDate><guid>/hyperf-php-coroutine-framework-baseado-em-swoole/</guid><description>Durante muito tempo que estudei sobre Swoole, eu sempre fazia as coisas &amp;ldquo;do zero&amp;rdquo; para tentar entender a fundo sobre ele. Cheguei a pesquisar alguns frameworks baseados nele, mas não encontrei nenhum que tenha me chamado a atenção. Então acabei seguindo meus estudos por conta mesmo, até agora.
+Quando conheci o Hyperf não imaginei o quanto ele era incrível até começar a descobrir tudo que ele poderia me entregar. Praticamente todos os desafios que eu estava tendo para implementar do zero com Swoole, ele resolveu.</description><content>&lt;p>Durante muito tempo que estudei sobre &lt;a href="https://www.swoole.co.uk/">Swoole&lt;/a>, eu sempre fazia as coisas &amp;ldquo;do zero&amp;rdquo; para tentar entender a fundo sobre ele. Cheguei a pesquisar alguns frameworks baseados nele, mas não encontrei nenhum que tenha me chamado a atenção. Então acabei seguindo meus estudos por conta mesmo, até agora.&lt;/p>
+&lt;p>Quando conheci o &lt;a href="https://github.com/hyperf/hyperf">Hyperf&lt;/a> não imaginei o quanto ele era incrível até começar a descobrir tudo que ele poderia me entregar. Praticamente todos os desafios que eu estava tendo para implementar do zero com Swoole, ele resolveu.&lt;/p>
+&lt;p>Pode até parecer ótimo ter tudo pronto, mas do que adianta ter um carro de fórmula 1 se você não souber dirigir? Então não é tão simples assim. É preciso ter uma base de Swoole, programação concorrente, aplicação stateful, etc., para conseguir extrair todo o poder que ele pode te dar.&lt;/p>
+&lt;p>A ideia aqui é te ajudar com os primeiros passos e ter um projeto mínimo rodando, pois, só de utilizar o Hyperf como framework, você já conseguirá sentir uma diferença absurda em performance.&lt;/p>
+&lt;p>A documentação é bacana, aborda bastante coisa e tem vários exemplos, então vou passar por alguns tópicos e ir referenciando tudo aqui. Alguns conteúdos da documentação ainda estão em chinês, mas estão sendo traduzidos, enquanto isso, é só traduzir que da tudo certo!&lt;/p>
+&lt;p>Minha missão aqui é:&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Te incentivar a construir as suas próximas aplicações utilizando Hyperf e Swoole.&lt;/strong>&lt;/p>
+&lt;/blockquote>
+&lt;p>Então, bora lá!&lt;/p>
+&lt;p>Tópicos:&lt;/p>
+&lt;ol>
+&lt;li>&lt;a href="#1-o-que-e">O que é?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#2-instalacao">Instalação&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#3-hot-reload">Hot Reload&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#4-estrutura">Estrutura&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#5-melhorando-o-ambiente">Melhorando o ambiente&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#6-database">Database&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#7-rotas-e-controllers">Rotas e Controllers&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#8-parallel">Parallel&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#9-benchmark">Benchmark&lt;/a>&lt;/li>
+&lt;/ol>
+&lt;hr>
+&lt;h2 id="1-o-que-é">1. O que é?&lt;/h2>
+&lt;p>O Hyperf é um framework de alto desempenho e altamente flexível baseado em Swoole 4.5+ com &lt;code>PHP CLI&lt;/code>. Ele possui um servidor de corrotina integrado com diversos componentes comumente usados.&lt;/p>
+&lt;p>Durante cerca de meio ano, o Hyperf foi testado em diversas companhias pelo mundo, após ótimos resultados, ele foi liberado para a comunidade em 20/06/2019.&lt;/p>
+&lt;blockquote>
+&lt;p>Os dois trechos acima foram retirados e traduzidos da &lt;a href="https://hyperf.wiki/2.1/#/en/README">documentação oficial&lt;/a>&lt;/p>
+&lt;/blockquote>
+&lt;p>Caso você não conheça o Swoole PHP, recomendo dar uma olhada antes, pois vou assumir que você já conhece a forma com que ele funciona, já que o Hyperf é baseado nele.&lt;/p>
+&lt;blockquote>
+&lt;p>Algumas recomendações de leitura para que você conheça e aprenda mais sobre Swoole:&lt;/p>
+&lt;/blockquote>
+&lt;ul>
+&lt;li>&lt;a href="https://www.swoole.co.uk/docs/">O que é Swoole&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.swoole.co.uk/how-it-works">Como Swoole funciona&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.linkedin.com/pulse/websocket-em-php-sim-%C3%A9-poss%C3%ADvel-ronie-neubauer/">Websocket em PHP com Swoole&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.amazon.com.br/Mastering-Swoole-PHP-performance-concurrent-ebook/dp/B0881B227S">Livro Mastering Swoole PHP&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://diegoborgs.com.br/blog/mastering-swoole-php-parte-i-introdu%C3%A7%C3%A3o">Série de resumo do Livro&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;p>Uma coisa bem interessante, é que o Hyperf é muito similar ao &lt;a href="https://laravel.com/">Laravel&lt;/a>, então se você já trabalhou com Laravel, vai se adaptar muito bem ao Hyperf.&lt;/p>
+&lt;p>Por ser baseado em Swoole, ele roda em cima do &lt;code>PHP CLI&lt;/code>, sendo stateful, e é extremamente performático comparado ao &amp;ldquo;PHP tradicional&amp;rdquo;, utilizado via &lt;code>php-fpm&lt;/code>, e também comparado a outras linguagens. 👀&lt;/p>
+&lt;p>A proposta do Hyperf foi trazer todas as features do Swoole de forma simples para a comunidade, fazendo com que não fosse preciso implementar tudo do zero. Grandes exemplos são as pools de conexões, servidor HTTP, TCP, gRPC, &lt;a href="https://hyperf.wiki/2.1/#/en/README">entre outros&lt;/a>.&lt;/p>
+&lt;p>Para exemplificar como funciona, ao utilizar o client pronto de Redis do Hyperf, você já tem uma pool criada por baixo com o client de Redis do Swoole, o que já ajuda muito na hora de fazer um projeto. A mesma coisa para o Eloquent ORM, ao utiliza-lo no Hyperf, por baixo já está tudo resolvido.&lt;/p>
+&lt;blockquote>
+&lt;p>Ou seja, não tem motivos para não achar isso incrível &amp;lt;3&lt;/p>
+&lt;/blockquote>
+&lt;p>Para entender o &lt;a href="https://hyperf.wiki/2.1/#/en/lifecycle">Lifecycle do Hyperf&lt;/a>, é muito importante entender o &lt;a href="https://www.swoole.co.uk/docs/modules/swoole-http-server-doc">Lifecycle do Swoole&lt;/a>. Como o Swoole é executado via &lt;code>PHP CLI&lt;/code>, o Hyperf se inicia também via &lt;code>PHP CLI&lt;/code>, utilizando o &lt;a href="https://github.com/symfony/console">symfony/console&lt;/a> como &lt;code>command&lt;/code>.&lt;/p>
+&lt;hr>
+&lt;h2 id="2-instalação">2. Instalação&lt;/h2>
+&lt;p>A maneira mais fácil de iniciar é utilizando Docker, como em tudo rs. Com isso, você não precisa se preocupar com a versão do PHP, da extensão do Swoole na sua máquina, etc.&lt;/p>
+&lt;p>Primeiro, crie uma pasta para iniciar o projeto:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">mkdir hyperf-skeleton &lt;span style="color:#f92672">&amp;amp;&amp;amp;&lt;/span> cd hyperf-skeleton
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Inicie o container mapeando o diretório que criamos como um volume para receber o projeto:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker run -v &lt;span style="color:#e6db74">${&lt;/span>PWD&lt;span style="color:#e6db74">}&lt;/span>:/app -p 9501:9501 -it --entrypoint /bin/sh hyperf/hyperf:7.4-alpine-v3.11-swoole
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Já dentro do container, instale o Hyperf na pasta &lt;code>app&lt;/code> que mapeamos anteriormente. O framework é bastante modular, então ele vai perguntar se você quer utilizar algumas coisas, inicialmente, escolha todas as opções padrão que já vai nos atender.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">composer create-project hyperf/hyperf-skeleton app
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Caso você queira iniciar esse projeto novamente de maneira mais fácil e já cair na raiz do projeto, crie o arquivo do &lt;code>docker-compose.yaml&lt;/code> com o seguinte conteúdo:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-docker" data-lang="docker">version: &lt;span style="color:#e6db74">&amp;#39;3.9&amp;#39;&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span>services:&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> hyperf-skeleton:&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> container_name: hyperf-skeleton&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> image: hyperf/hyperf:7.4-alpine-v3.11-swoole&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> working_dir: /app&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> entrypoint: sh&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> volumes:&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> - ./:/app&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> ports:&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> - 9501:9501&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Sobre o &lt;code>entrypoint&lt;/code> ser direto o &lt;code>sh&lt;/code> e não o start do projeto, veremos mais tarde o motivo disso. Depois disso, para iniciar o container basta usar o seguinte comando:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker compose run --rm --service-ports hyperf-skeleton
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Agora é só iniciar o webserver:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">php bin/hyperf.php start
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Sua aplicação está pronta para responder em: &lt;a href="http://0.0.0.0:9501">http://0.0.0.0:9501&lt;/a>&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-json" data-lang="json">{
+&lt;span style="color:#f92672">&amp;#34;method&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;GET&amp;#34;&lt;/span>,
+&lt;span style="color:#f92672">&amp;#34;message&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;Hello Hyperf.&amp;#34;&lt;/span>
+}
+&lt;/code>&lt;/pre>&lt;/div>&lt;blockquote>
+&lt;p>Mais detalhes na &lt;a href="https://hyperf.wiki/2.1/#/en/quick-start/install">documentação oficial&lt;/a>&lt;/p>
+&lt;/blockquote>
+&lt;hr>
+&lt;h2 id="3-hot-reload">3. Hot Reload&lt;/h2>
+&lt;p>Como já vimos que o Swoole é executado via &lt;code>PHP CLI&lt;/code>, em ambiente de desenvolvimento isso pode ser ruim, pois podemos perder muito tempo parando e iniciando o servidor. Bom, felizmente o Hyperf resolveu isso de forma fácil via o componente &lt;a href="https://hyperf.wiki/2.1/#/en/watcher">Watcher&lt;/a>.&lt;/p>
+&lt;blockquote>
+&lt;p>Importante: não utilize esse componente em ambiente produtivo, ele é destinado ao ambiente de desenvolvimento!&lt;/p>
+&lt;/blockquote>
+&lt;p>Primeiro precisamos instalar esse modulo no nosso projeto:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">composer require hyperf/watcher --dev
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Publicar o arquivo de configurações:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">php bin/hyperf.php vendor:publish hyperf/watcher
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Um arquivo foi criado em: &lt;code>config/autoload/watcher.php&lt;/code>, nele você pode definir as configurações que achar melhor, aqui vamos seguir com as que já estão lá mesmo.&lt;/p>
+&lt;p>Agora, para rodar nosso projeto em &lt;strong>ambiente de desenvolvimento&lt;/strong>, nosso comando passa a ser:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">php bin/hyperf.php server:watch
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Assim, sempre que fizermos alguma alteração no projeto, esse componente vai recarregar nosso código automaticamente sem ser preciso reiniciar manualmente.&lt;/p>
+&lt;p>&lt;img src="images/magic.gif" alt="magic.gif">&lt;/p>
+&lt;hr>
+&lt;h2 id="4-estrutura">4. Estrutura&lt;/h2>
+&lt;p>A estrutura é bem simples, como comentei é bem similar ao Laravel, então não tem muita complexidade. As principais pastas são:&lt;/p>
+&lt;ul>
+&lt;li>Arquivo de start: &lt;code>bin/hyperf.php&lt;/code>&lt;/li>
+&lt;li>Centro de configurações: &lt;code>config/*&lt;/code>&lt;/li>
+&lt;li>Rotas: &lt;code>config/routes.php&lt;/code>&lt;/li>
+&lt;li>Server: &lt;code>config/autoload/server.php&lt;/code>&lt;/li>
+&lt;li>Injeção de dependências: &lt;code>config/autoload/dependencies.php&lt;/code>&lt;/li>
+&lt;li>Design do projeto: &lt;code>config/autoload/devtool.php&lt;/code>&lt;/li>
+&lt;li>Aplicação: &lt;code>app/*&lt;/code>&lt;/li>
+&lt;/ul>
+&lt;blockquote>
+&lt;p>Para conhecer mais sobre o centro de configurações, acesse &lt;a href="https://hyperf.wiki/2.1/#/en/config-center">este link&lt;/a>.&lt;/p>
+&lt;/blockquote>
+&lt;p>Eu queria destacar um dos itens acima que achei super interessante, o arquivo &lt;code>devtool.php&lt;/code>. Com ele é possível montar todo o design da sua arquitetura da forma que você achar melhor. Ou seja, em um único arquivo você consegue definir sua estrutura de pastas para utilizar &lt;a href="https://pt.stackoverflow.com/questions/19548/o-que-realmente-%C3%A9-ddd-e-quando-ele-se-aplica">DDD&lt;/a> com &lt;a href="https://medium.com/luizalabs/descomplicando-a-clean-architecture-cf4dfc4a1ac6">clean architecture&lt;/a>, &lt;a href="https://netflixtechblog.com/ready-for-changes-with-hexagonal-architecture-b315ec967749">hexagonal architecture&lt;/a>, ou qualquer outra que desejar, te dando muito poder de trabalhar da forma que preferir.&lt;/p>
+&lt;hr>
+&lt;h2 id="5-melhorando-o-ambiente">5. Melhorando o ambiente&lt;/h2>
+&lt;p>Na próxima seção, vamos iniciar com uma ideia básica de CRUD. Mas antes, vamos fazer uma melhoria no nosso &lt;code>docker-compose.yaml&lt;/code> para ajudar no nosso desenvolvimento, adicionando o nosso banco de dados e o Redis (que vamos utilizar mais adiante).&lt;/p>
+&lt;p>Atualize o arquivo &lt;code>docker-compose.yaml&lt;/code> para:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-docker" data-lang="docker">version: &lt;span style="color:#e6db74">&amp;#39;3.9&amp;#39;&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span>services:&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> hyperf-skeleton:&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> container_name: hyperf-skeleton&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> image: hyperf/hyperf:7.4-alpine-v3.11-swoole&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> working_dir: /app&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> entrypoint: &lt;span style="color:#f92672">[&lt;/span>&lt;span style="color:#e6db74">&amp;#34;php&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;bin/hyperf.php&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;server:watch&amp;#34;&lt;/span>&lt;span style="color:#f92672">]&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> volumes:&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> - ./:/app&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> ports:&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> - 9501:9501&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> depends_on:&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> - hyperf-skeleton-mariadb&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> - hyperf-skeleton-redis&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> hyperf-skeleton-mariadb:&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> container_name: hyperf-skeleton-mariadb&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> image: mariadb:latest&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> volumes:&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> - ./.docker/mariadb:/var/lib/mysql&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> ports:&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> - 3306:3306&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> environment:&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> MYSQL_ROOT_PASSWORD: &lt;span style="color:#e6db74">&amp;#34;secret&amp;#34;&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> MYSQL_DATABASE: &lt;span style="color:#e6db74">&amp;#34;hyperf-skeleton&amp;#34;&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> hyperf-skeleton-redis:&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> container_name: hyperf-skeleton-redis&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> image: redis:latest&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> ports:&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span> - 6379:6379&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Agora para iniciar nosso projeto completo basta rodar o seguinte comando:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker-compose up -d
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>E claro, para remover tudo:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker-compose down
+&lt;/code>&lt;/pre>&lt;/div>&lt;hr>
+&lt;h2 id="6-database">6. Database&lt;/h2>
+&lt;blockquote>
+&lt;p>Caso queira entender um pouco mais sobre o que vamos utilizar agora no Hyperf, acesse a documentação oficial e veja sobre: &lt;a href="https://hyperf.wiki/2.1/#/en/db/quick-start">Database&lt;/a>, &lt;a href="https://hyperf.wiki/2.1/#/en/db/model">Model&lt;/a> e &lt;a href="https://hyperf.wiki/2.1/#/en/db/migration">Migration&lt;/a>.&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>Dica: evite copiar e colar o código, tente escrever tudo, assim seu aprendizado será muito maior (:&lt;/p>
+&lt;/blockquote>
+&lt;p>Com nosso banco de dados rodando, vamos criar uma migration para a tabela de usuários:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker container exec -it hyperf-skeleton php bin/hyperf.php gen:migration create_users_table
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Com o nosso arquivo gerado em &lt;code>migrations/*_create_users_table.php&lt;/code>, vamos inserir os campos básicos para serem criados:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-php" data-lang="php">&lt;span style="color:#a6e22e">Schema&lt;/span>&lt;span style="color:#f92672">::&lt;/span>&lt;span style="color:#a6e22e">create&lt;/span>(&lt;span style="color:#e6db74">&amp;#39;users&amp;#39;&lt;/span>, &lt;span style="color:#66d9ef">function&lt;/span> (&lt;span style="color:#a6e22e">Blueprint&lt;/span> $table) {
+$table&lt;span style="color:#f92672">-&amp;gt;&lt;/span>&lt;span style="color:#a6e22e">uuid&lt;/span>(&lt;span style="color:#e6db74">&amp;#39;id&amp;#39;&lt;/span>)&lt;span style="color:#f92672">-&amp;gt;&lt;/span>&lt;span style="color:#a6e22e">primary&lt;/span>();
+$table&lt;span style="color:#f92672">-&amp;gt;&lt;/span>&lt;span style="color:#a6e22e">string&lt;/span>(&lt;span style="color:#e6db74">&amp;#39;name&amp;#39;&lt;/span>);
+$table&lt;span style="color:#f92672">-&amp;gt;&lt;/span>&lt;span style="color:#a6e22e">string&lt;/span>(&lt;span style="color:#e6db74">&amp;#39;email&amp;#39;&lt;/span>);
+$table&lt;span style="color:#f92672">-&amp;gt;&lt;/span>&lt;span style="color:#a6e22e">timestamps&lt;/span>();
+});
+&lt;/code>&lt;/pre>&lt;/div>&lt;blockquote>
+&lt;p>Sim, vamos usar &lt;code>uuid&lt;/code> como chave primaria, espero que em todos os seus projetos você também esteja usando 👀, se ainda não estiver, da uma olhada &lt;a href="https://mareks-082.medium.com/auto-increment-keys-vs-uuid-a74d81f7476a">aqui&lt;/a>.&lt;/p>
+&lt;/blockquote>
+&lt;p>O próximo passo é criar o nosso modelo, então na pasta &lt;code>App/Model&lt;/code> vamos criar o nosso &lt;code>User&lt;/code>:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-php" data-lang="php">&lt;span style="color:#f92672">&amp;lt;?&lt;/span>&lt;span style="color:#a6e22e">php&lt;/span> &lt;span style="color:#66d9ef">declare&lt;/span>(&lt;span style="color:#a6e22e">strict_types&lt;/span>&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#ae81ff">1&lt;/span>);
+&lt;span style="color:#66d9ef">namespace&lt;/span> &lt;span style="color:#a6e22e">App\Model&lt;/span>;
+&lt;span style="color:#66d9ef">use&lt;/span> &lt;span style="color:#a6e22e">Hyperf\DbConnection\Model\Model&lt;/span>;
+&lt;span style="color:#e6db74">/**
+&lt;/span>&lt;span style="color:#e6db74"> * @property $id
+&lt;/span>&lt;span style="color:#e6db74"> * @property $name
+&lt;/span>&lt;span style="color:#e6db74"> * @property $email
+&lt;/span>&lt;span style="color:#e6db74"> * @property $created_at
+&lt;/span>&lt;span style="color:#e6db74"> * @property $updated_at
+&lt;/span>&lt;span style="color:#e6db74"> */&lt;/span>
+&lt;span style="color:#66d9ef">class&lt;/span> &lt;span style="color:#a6e22e">User&lt;/span> &lt;span style="color:#66d9ef">extends&lt;/span> &lt;span style="color:#a6e22e">Model&lt;/span>
+{
+&lt;span style="color:#e6db74">/**
+&lt;/span>&lt;span style="color:#e6db74"> * @var string
+&lt;/span>&lt;span style="color:#e6db74"> */&lt;/span>
+&lt;span style="color:#66d9ef">public&lt;/span> $keyType &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#39;string&amp;#39;&lt;/span>;
+&lt;span style="color:#e6db74">/**
+&lt;/span>&lt;span style="color:#e6db74"> * @var bool
+&lt;/span>&lt;span style="color:#e6db74"> */&lt;/span>
+&lt;span style="color:#66d9ef">public&lt;/span> $incrementing &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#66d9ef">false&lt;/span>;
+&lt;span style="color:#e6db74">/**
+&lt;/span>&lt;span style="color:#e6db74"> * The attributes that are mass assignable.
+&lt;/span>&lt;span style="color:#e6db74"> *
+&lt;/span>&lt;span style="color:#e6db74"> * @var array
+&lt;/span>&lt;span style="color:#e6db74"> */&lt;/span>
+&lt;span style="color:#66d9ef">protected&lt;/span> $fillable &lt;span style="color:#f92672">=&lt;/span> [&lt;span style="color:#e6db74">&amp;#39;id&amp;#39;&lt;/span>, &lt;span style="color:#e6db74">&amp;#39;name&amp;#39;&lt;/span>, &lt;span style="color:#e6db74">&amp;#39;email&amp;#39;&lt;/span>, &lt;span style="color:#e6db74">&amp;#39;created_at&amp;#39;&lt;/span>, &lt;span style="color:#e6db74">&amp;#39;updated_at&amp;#39;&lt;/span>];
+}
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Antes de rodar a nossa migration, normalmente é preciso verificar se os parâmetros de conexão do banco estão devidamente configurados. Porém, no nosso caso vamos manter tudo como está, mas vale a pena dar uma olhada no conteúdo do arquivo, ele fica em &lt;code>config/autoload/databases.php&lt;/code>.&lt;/p>
+&lt;p>O que vamos precisar fazer é trocar as &lt;code>envs&lt;/code> no arquivo &lt;code>.env&lt;/code> para realizar a conexão ao nosso container. Só vamos precisar alterar as seguintes &lt;code>envs&lt;/code>:&lt;/p>
+&lt;pre>&lt;code>DB_HOST=hyperf-skeleton-mariadb
+DB_DATABASE=hyperf-skeleton
+DB_USERNAME=root
+DB_PASSWORD=secret
+&lt;/code>&lt;/pre>&lt;p>Agora é só rodar a migration no container da aplicação:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker container exec -it hyperf-skeleton php bin/hyperf.php migrate
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Resultado de sucesso:&lt;/p>
+&lt;pre>&lt;code>[INFO] Migration table created successfully.
+Migrating: *_create_users_table
+Migrated: *_create_users_table
+&lt;/code>&lt;/pre>&lt;blockquote>
+&lt;p>Importante, o hot reload não funciona para recarregar variaveis de ambiente, então é preciso dar um restart manual no container.&lt;/p>
+&lt;/blockquote>
+&lt;hr>
+&lt;h2 id="7-rotas-e-controllers">7. Rotas e Controllers&lt;/h2>
+&lt;blockquote>
+&lt;p>Caso queira entender um pouco mais sobre o que vamos utilizar agora no Hyperf, acesse a documentação oficial e veja sobre: &lt;a href="https://hyperf.wiki/2.1/#/en/controller">Controller&lt;/a> e &lt;a href="https://hyperf.wiki/2.1/#/en/router">Router&lt;/a>.&lt;/p>
+&lt;/blockquote>
+&lt;p>Agora vamos criar o nosso &lt;code>UserController&lt;/code>, na pasta &lt;code>app/Controller&lt;/code> inicialmente vazio:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-php" data-lang="php">&lt;span style="color:#f92672">&amp;lt;?&lt;/span>&lt;span style="color:#a6e22e">php&lt;/span> &lt;span style="color:#66d9ef">declare&lt;/span>(&lt;span style="color:#a6e22e">strict_types&lt;/span>&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#ae81ff">1&lt;/span>);
+&lt;span style="color:#66d9ef">namespace&lt;/span> &lt;span style="color:#a6e22e">App\Controller&lt;/span>;
+&lt;span style="color:#66d9ef">class&lt;/span> &lt;span style="color:#a6e22e">UserController&lt;/span> &lt;span style="color:#66d9ef">extends&lt;/span> &lt;span style="color:#a6e22e">AbstractController&lt;/span>
+{
+}
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Depois, precisamos definir nossas rotas. Então faremos algo assim:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-php" data-lang="php">&lt;span style="color:#66d9ef">use&lt;/span> &lt;span style="color:#a6e22e">App\Controller\UserController&lt;/span>;
+&lt;span style="color:#a6e22e">Router&lt;/span>&lt;span style="color:#f92672">::&lt;/span>&lt;span style="color:#a6e22e">addGroup&lt;/span>(&lt;span style="color:#e6db74">&amp;#39;/users&amp;#39;&lt;/span>, &lt;span style="color:#66d9ef">function&lt;/span> () {
+&lt;span style="color:#a6e22e">Router&lt;/span>&lt;span style="color:#f92672">::&lt;/span>&lt;span style="color:#a6e22e">get&lt;/span>(&lt;span style="color:#e6db74">&amp;#39;&amp;#39;&lt;/span>, [&lt;span style="color:#a6e22e">UserController&lt;/span>&lt;span style="color:#f92672">::&lt;/span>&lt;span style="color:#a6e22e">class&lt;/span>, &lt;span style="color:#e6db74">&amp;#39;index&amp;#39;&lt;/span>]);
+&lt;span style="color:#a6e22e">Router&lt;/span>&lt;span style="color:#f92672">::&lt;/span>&lt;span style="color:#a6e22e">get&lt;/span>(&lt;span style="color:#e6db74">&amp;#39;/{id}&amp;#39;&lt;/span>, [&lt;span style="color:#a6e22e">UserController&lt;/span>&lt;span style="color:#f92672">::&lt;/span>&lt;span style="color:#a6e22e">class&lt;/span>, &lt;span style="color:#e6db74">&amp;#39;show&amp;#39;&lt;/span>]);
+&lt;span style="color:#a6e22e">Router&lt;/span>&lt;span style="color:#f92672">::&lt;/span>&lt;span style="color:#a6e22e">post&lt;/span>(&lt;span style="color:#e6db74">&amp;#39;&amp;#39;&lt;/span>, [&lt;span style="color:#a6e22e">UserController&lt;/span>&lt;span style="color:#f92672">::&lt;/span>&lt;span style="color:#a6e22e">class&lt;/span>, &lt;span style="color:#e6db74">&amp;#39;store&amp;#39;&lt;/span>]);
+&lt;span style="color:#a6e22e">Router&lt;/span>&lt;span style="color:#f92672">::&lt;/span>&lt;span style="color:#a6e22e">delete&lt;/span>(&lt;span style="color:#e6db74">&amp;#39;/{id}&amp;#39;&lt;/span>, [&lt;span style="color:#a6e22e">UserController&lt;/span>&lt;span style="color:#f92672">::&lt;/span>&lt;span style="color:#a6e22e">class&lt;/span>, &lt;span style="color:#e6db74">&amp;#39;delete&amp;#39;&lt;/span>]);
+});
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Voltando para o nosso &lt;code>Controller&lt;/code>, vamos criar os métodos conforme nossas rotas já utilizando a classe &lt;code>User&lt;/code> e fazendo as devidas operações com o ORM:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-php" data-lang="php">&lt;span style="color:#f92672">&amp;lt;?&lt;/span>&lt;span style="color:#a6e22e">php&lt;/span> &lt;span style="color:#66d9ef">declare&lt;/span>(&lt;span style="color:#a6e22e">strict_types&lt;/span>&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#ae81ff">1&lt;/span>);
+&lt;span style="color:#66d9ef">namespace&lt;/span> &lt;span style="color:#a6e22e">App\Controller&lt;/span>;
+&lt;span style="color:#66d9ef">use&lt;/span> &lt;span style="color:#a6e22e">App\Model\User&lt;/span>;
+&lt;span style="color:#66d9ef">use&lt;/span> &lt;span style="color:#a6e22e">Hyperf\HttpServer\Contract\RequestInterface&lt;/span>;
+&lt;span style="color:#66d9ef">class&lt;/span> &lt;span style="color:#a6e22e">UserController&lt;/span> &lt;span style="color:#66d9ef">extends&lt;/span> &lt;span style="color:#a6e22e">AbstractController&lt;/span>
+{
+&lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">function&lt;/span> &lt;span style="color:#a6e22e">index&lt;/span>(&lt;span style="color:#a6e22e">RequestInterface&lt;/span> $request)
+{
+&lt;span style="color:#66d9ef">return&lt;/span> &lt;span style="color:#a6e22e">User&lt;/span>&lt;span style="color:#f92672">::&lt;/span>&lt;span style="color:#a6e22e">get&lt;/span>();
+}
+&lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">function&lt;/span> &lt;span style="color:#a6e22e">show&lt;/span>(&lt;span style="color:#a6e22e">string&lt;/span> $id)
+{
+&lt;span style="color:#66d9ef">return&lt;/span> &lt;span style="color:#a6e22e">User&lt;/span>&lt;span style="color:#f92672">::&lt;/span>&lt;span style="color:#a6e22e">find&lt;/span>($id);
+}
+&lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">function&lt;/span> &lt;span style="color:#a6e22e">store&lt;/span>(&lt;span style="color:#a6e22e">RequestInterface&lt;/span> $request)
+{
+&lt;span style="color:#66d9ef">return&lt;/span> &lt;span style="color:#a6e22e">User&lt;/span>&lt;span style="color:#f92672">::&lt;/span>&lt;span style="color:#a6e22e">create&lt;/span>($request&lt;span style="color:#f92672">-&amp;gt;&lt;/span>&lt;span style="color:#a6e22e">all&lt;/span>());
+}
+&lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">function&lt;/span> &lt;span style="color:#a6e22e">delete&lt;/span>(&lt;span style="color:#a6e22e">string&lt;/span> $id)
+{
+&lt;span style="color:#66d9ef">return&lt;/span> &lt;span style="color:#a6e22e">User&lt;/span>&lt;span style="color:#f92672">::&lt;/span>&lt;span style="color:#a6e22e">destroy&lt;/span>($id);
+}
+}
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Essa é uma estrutura extremamente básica, e com alguns problemas&amp;hellip; Contudo, a ideia não é ensinar tudo aqui, e sim te direcionar para explorar e construir coisas interessantes. Para isso, vou deixar alguns links aqui para você melhorar este código:&lt;/p>
+&lt;ul>
+&lt;li>&lt;a href="https://hyperf.wiki/2.1/#/en/db/paginator">Paginator&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://hyperf.wiki/2.1/#/en/validation">Validation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://hyperf.wiki/2.1/#/en/cache">Cache&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://hyperf.wiki/2.1/#/en/response">Response&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://hyperf.wiki/2.1/#/en/event">Event Dispatcher&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;p>Todos os itens acima têm uma boa documentação e com bons exemplos. Você consegue implementar tudo isso nesse simples CRUD para exercitar os recursos do Hyperf.&lt;/p>
+&lt;p>Ainda tenho uma ideia bônus: crie uma interface e uma implementação para a Repository Pattern refatorando este código e injete via &lt;a href="https://hyperf.wiki/2.1/#/en/di">Dependency Injection&lt;/a>, tenho certeza que será bacana entender este fluxo.&lt;/p>
+&lt;p>E claro, não esqueça de criar testes. O Hyperf criou o &lt;code>co-phpunit&lt;/code>, que é basicamente o &lt;code>phpunit&lt;/code> com corrotinas. Maneiro de mais né? Para conhecer mais acesse a &lt;a href="https://hyperf.wiki/2.1/#/en/testing">documentação&lt;/a>.&lt;/p>
+&lt;hr>
+&lt;h2 id="8-parallel">8. Parallel&lt;/h2>
+&lt;p>Outra coisa que achei muito bacana, foi a implementação que o Hyperf fez do gerenciamento via channels de corrotinas usando wait groups e handle de exceptions. Basicamente ele encapsulou toda essa implementação na classe &lt;code>Hyperf\Utils\Parallel&lt;/code>.&lt;/p>
+&lt;p>Usando o exemplo do que fizemos acima, para criar vários usuários em paralelo e só continuar depois que todos finalizarem, podemos fazer assim no nosso &lt;code>UserController@store&lt;/code>:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-php" data-lang="php">&lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">function&lt;/span> &lt;span style="color:#a6e22e">store&lt;/span>(&lt;span style="color:#a6e22e">RequestInterface&lt;/span> $request)
+{
+$parallel &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#66d9ef">new&lt;/span> &lt;span style="color:#a6e22e">Parallel&lt;/span>();
+&lt;span style="color:#66d9ef">foreach&lt;/span> ($request&lt;span style="color:#f92672">-&amp;gt;&lt;/span>&lt;span style="color:#a6e22e">input&lt;/span>(&lt;span style="color:#e6db74">&amp;#39;users&amp;#39;&lt;/span>) &lt;span style="color:#66d9ef">as&lt;/span> $user) {
+$parallel&lt;span style="color:#f92672">-&amp;gt;&lt;/span>&lt;span style="color:#a6e22e">add&lt;/span>(
+&lt;span style="color:#66d9ef">function&lt;/span> () &lt;span style="color:#66d9ef">use&lt;/span> ($user) {
+&lt;span style="color:#a6e22e">User&lt;/span>&lt;span style="color:#f92672">::&lt;/span>&lt;span style="color:#a6e22e">create&lt;/span>($user);
+},
+$user[&lt;span style="color:#e6db74">&amp;#39;id&amp;#39;&lt;/span>]
+);
+}
+&lt;span style="color:#66d9ef">return&lt;/span> $parallel&lt;span style="color:#f92672">-&amp;gt;&lt;/span>&lt;span style="color:#a6e22e">wait&lt;/span>();
+}
+&lt;/code>&lt;/pre>&lt;/div>&lt;blockquote>
+&lt;p>Claro que não fariamos esta implementação no mundo real, é apenas um exemplo rsrs.&lt;/p>
+&lt;/blockquote>
+&lt;p>É importante destacar que ao disparar uma corrotina, tudo que for utilizado de I/O dentro do seu contexto precisa ser compatível com corrotinas, caso contrário seu código será bloqueante.&lt;/p>
+&lt;p>Todos os componentes do Hyperf já são compatíveis, então você pode utilizar sem problemas, tenha atenção apenas com bibliotecas como a do &lt;code>mongodb&lt;/code>, que, até o momento não tem suporte dos &lt;a href="https://www.swoole.co.uk/docs/modules/swoole-runtime-flags">Hooks do Swoole&lt;/a>.&lt;/p>
+&lt;hr>
+&lt;h2 id="9-benchmark">9. Benchmark&lt;/h2>
+&lt;p>Falamos muito sobre performance, diferenças entre o Swoole e o &amp;ldquo;PHP Tradicional&amp;rdquo;, mas agora vamos aos números!&lt;/p>
+&lt;p>Realizei um teste na minha própria máquina, então os resultados podem ser diferentes de um servidor em produção ou da sua máquina. Não vamos focar nos números absolutos, vamos focar nas referências entre um e outro, pois mesmo mudando de ambiente, provavelmente serão mantidas similares.&lt;/p>
+&lt;blockquote>
+&lt;p>Para realizar os testes utilizei o &lt;a href="https://github.com/wg/wrk">wrk&lt;/a> na rota de retorno base dos frameworks.&lt;/p>
+&lt;/blockquote>
+&lt;p>&lt;strong>Laravel 8 com PHP 7.4 (93 rq/s)&lt;/strong>&lt;/p>
+&lt;pre>&lt;code>Running 10s test @ http://0.0.0.0:8000
+12 threads and 400 connections
+Thread Stats Avg Stdev Max +/- Stdev
+Latency 550.01ms 335.24ms 1.12s 63.01%
+Req/Sec 12.38 8.80 70.00 84.72%
+938 requests in 10.10s, 16.64MB read
+Socket errors: connect 155, read 1214, write 12, timeout 0
+Requests/sec: 92.83
+Transfer/sec: 1.65MB
+&lt;/code>&lt;/pre>&lt;p>&lt;strong>Lumen 8 com PHP 7.4 (279 rq/s)&lt;/strong>&lt;/p>
+&lt;pre>&lt;code>Running 10s test @ http://0.0.0.0:8000
+12 threads and 400 connections
+Thread Stats Avg Stdev Max +/- Stdev
+Latency 108.93ms 41.13ms 193.70ms 76.31%
+Req/Sec 73.96 40.36 184.00 69.49%
+2820 requests in 10.10s, 751.82KB read
+Socket errors: connect 157, read 3987, write 4, timeout 0
+Requests/sec: 279.10
+Transfer/sec: 74.41KB
+&lt;/code>&lt;/pre>&lt;p>&lt;strong>Laravel Octane com PHP 8.0 e Swoole (1.273 rq/s)&lt;/strong>&lt;/p>
+&lt;pre>&lt;code>Running 10s test @ http://0.0.0.0:8000
+12 threads and 400 connections
+Thread Stats Avg Stdev Max +/- Stdev
+Latency 110.06ms 190.13ms 1.65s 84.78%
+Req/Sec 118.57 96.64 550.00 69.97%
+12796 requests in 10.05s, 13.09MB read
+Socket errors: connect 157, read 101, write 4, timeout 0
+Requests/sec: 1273.75
+Transfer/sec: 1.30MB
+&lt;/code>&lt;/pre>&lt;p>&lt;strong>Hyperf 2.1 com PHP 7.4 (90.799 rq/s)&lt;/strong>&lt;/p>
+&lt;pre>&lt;code>Running 10s test @ http://0.0.0.0:9502
+12 threads and 400 connections
+Thread Stats Avg Stdev Max +/- Stdev
+Latency 628.86us 2.28ms 127.72ms 97.39%
+Req/Sec 20.96k 12.14k 62.60k 69.07%
+914415 requests in 10.07s, 165.69MB read
+Socket errors: connect 155, read 84, write 0, timeout 2
+Requests/sec: 90799.66
+Transfer/sec: 16.45MB
+&lt;/code>&lt;/pre>&lt;p>&lt;strong>Swoole puro com PHP 8.0 (159.581 rq/s)&lt;/strong>&lt;/p>
+&lt;pre>&lt;code>Running 10s test @ http://0.0.0.0:9501
+12 threads and 400 connections
+Thread Stats Avg Stdev Max +/- Stdev
+Latency 1.47ms 431.57us 29.87ms 97.10%
+Req/Sec 13.37k 5.49k 25.36k 59.74%
+1612224 requests in 10.10s, 267.53MB read
+Socket errors: connect 157, read 107, write 0, timeout 0
+Requests/sec: 159581.95
+Transfer/sec: 26.48MB
+&lt;/code>&lt;/pre>&lt;p>Comparações usando o mais lento como referência:&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>Framework&lt;/th>
+&lt;th>rq/s&lt;/th>
+&lt;th>ref.&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>Laravel&lt;/td>
+&lt;td>92&lt;/td>
+&lt;td>x1&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>Lumen&lt;/td>
+&lt;td>279&lt;/td>
+&lt;td>+3x&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>Laravel Octane&lt;/td>
+&lt;td>1.273&lt;/td>
+&lt;td>+13x&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>Hyperf&lt;/td>
+&lt;td>90.799&lt;/td>
+&lt;td>+986x&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>Swoole puro&lt;/td>
+&lt;td>159.581&lt;/td>
+&lt;td>+1.734x&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>Ou seja, o Hyperf é mais de 986 vezes mais rápido do que o Laravel e o Swoole puro 1.734, isso sem considerar a latência, que também teve uma diferença enorme. Incrível né? Claro, este é um benchmark realizado localmente em uma rota extremamente simples, mas a diferença realmente é insana, mesmo em outros ambientes.&lt;/p>
+&lt;hr>
+&lt;p>O resultado deste projeto está no meu github:&lt;/p>
+&lt;p>&lt;a href="https://github.com/leocarmo/hyperf-skeleton">https://github.com/leocarmo/hyperf-skeleton&lt;/a>&lt;/p>
+&lt;p>Bom, acredito que passamos pelo básico do Hyperf, agora você já consegue explorar tudo que ele pode fornecer com este ambiente que iniciamos.&lt;/p>
+&lt;p>Pretendo escrever novos artigos aprofundando mais em assuntos específicos, principalmente sobre os diversos clients que ele implementa e sobre as &lt;a href="https://hyperf.wiki/2.1/#/en/pool">connections pools&lt;/a>.&lt;/p>
+&lt;p>Espero que você tenha gostado e que esse guia possa ter te ajudado. Apesar de algumas partes da documentação ainda não ter sido traduzida, ela é bem completa de exemplos, então da para implementar praticamente tudo que está disponível.&lt;/p>
+&lt;p>E aí, já conhecia o Hyperf? Me conta o que achou dele nos comentários. (:&lt;/p>
+&lt;hr>
+&lt;blockquote>
+&lt;p>Agradecimento especial ao &lt;a href="https://www.linkedin.com/in/ronieneubauer/">@ronieneubauer&lt;/a> pela revisão.&lt;/p>
+&lt;/blockquote></content></item><item><title>Graceful Shutdown com PHP - Evitando data corruption</title><link>/graceful-shutdown-com-php-evitando-data-corruption/</link><pubDate>Mon, 10 May 2021 19:24:26 -0300</pubDate><guid>/graceful-shutdown-com-php-evitando-data-corruption/</guid><description>Quando trabalhamos com processos críticos, seja via script em background ou via o fluxo transacional de APIs, temos algo muito importante para considerar: a possibilidade de interromper um processamento antes que ele termine, causando uma corrupção de dados (data corruption).
+Certo, mas o que isso significa e quais os impactos? Vamos pensar em um fluxo que conhecemos muito bem hoje: as transações em bancos de dados relacionais. Usamos isso quando precisamos garantir que dados sejam inseridos/alterados/deletados em conjunto, garantindo assim a consistência dos mesmos.</description><content>&lt;p>Quando trabalhamos com processos críticos, seja via script em background ou via o fluxo transacional de APIs, temos algo muito importante para considerar: &lt;strong>a possibilidade de interromper um processamento antes que ele termine, causando uma corrupção de dados (data corruption)&lt;/strong>.&lt;/p>
+&lt;hr>
+&lt;h3 id="certo-mas-o-que-isso-significa-e-quais-os-impactos">Certo, mas o que isso significa e quais os impactos?&lt;/h3>
+&lt;p>Vamos pensar em um fluxo que conhecemos muito bem hoje: as transações em bancos de dados relacionais. Usamos isso quando precisamos garantir que dados sejam inseridos/alterados/deletados em conjunto, garantindo assim a consistência dos mesmos. Ou seja, se em algum momento da transação algo der errado, realizamos o rollback, caso contrario, o commit da transação.&lt;/p>
+&lt;p>Com isso em mente, vamos mudar o contexto para um script em background que precisa realizar uma determinada tarefa com vários steps, normalmente um &lt;code>while(true)&lt;/code> que assina um tópico/fila e fica processando sem tempo definido. Mais conhecido como &amp;ldquo;moedor de carne&amp;rdquo; rs…&lt;/p>
+&lt;p>Agora vamos pensar que cada loop demore cerca de 1s para realizar a tarefa e este script está em um container que receberá uma nova versão de código, assim, o mesmo precisará ser destruído e um novo assumirá.&lt;/p>
+&lt;p>No momento do deploy, o container será forçado a desligar e poderá estar no meio de um processamento, que leva cerca de 1s, lembra?&lt;/p>
+&lt;blockquote>
+&lt;p>O que pode acontecer com o que estava sendo feito no loop? Tente pensar antes de continuar!&lt;/p>
+&lt;/blockquote>
+&lt;p>&lt;img src="images/thinking.gif" alt="thinking">&lt;/p>
+&lt;hr>
+&lt;p>Resposta: não sabemos! Ele pode ter forçado o desligamento em qualquer step. Pode ter sido no meio de uma transação de banco onde a mesma vai ficar presa até expirar, seja no envio de dados incompletos para outros serviços, geração de eventos &amp;ldquo;fantasmas&amp;rdquo;, e por aí vai…&lt;/p>
+&lt;p>Evitar essa corrupção de dados é uma tarefa bem simples, basta entender esse fluxo de desligamento e terminar de fazer o que estava sendo feito antes de realmente desligar o serviço. Lembrando que isso também vale para APIs, precisamos terminar uma requisição em andamento antes de desligar o serviço.&lt;/p>
+&lt;hr>
+&lt;h3 id="processo-de-shutdown-no-kubernetes">Processo de shutdown no Kubernetes&lt;/h3>
+&lt;p>Basicamente podemos resumir em dois momentos, primeiro um aviso de desligamento, conhecido como &lt;code>SIGTERM&lt;/code>, e o desligamento forçado, conhecido como &lt;code>SIGKILL&lt;/code>, que será enviado caso o container não tenha terminado após o aviso.&lt;/p>
+&lt;blockquote>
+&lt;p>Caso queira entender um pouco mais sobre estes sinais, &lt;a href="https://major.io/2010/03/18/sigterm-vs-sigkill/">veja este artigo&lt;/a> que explica bem a diferença entre cada um deles.&lt;/p>
+&lt;/blockquote>
+&lt;p>&lt;img src="images/pod-lifecycle.jpeg" alt="pod-lifecycle.jpeg">&lt;/p>
+&lt;p>Podemos ver cada estágio do lifecycle do Pod nesta imagem, onde nosso foco está na última caixinha da direita, onde temos o &lt;code>pre stop hook&lt;/code>, que emite o sinal de &lt;code>SIGTERM&lt;/code> e aguarda o desligamento do container. Veja o &lt;a href="https://www.youtube.com/watch?v=lnAwa8IFaLU">video completo&lt;/a> deste diagrama para mais detalhes.&lt;/p>
+&lt;blockquote>
+&lt;p>Para entender cada detalhe deste processo, você pode acessar a &lt;a href="https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination">documentação oficial&lt;/a>. Caso você não tenha sua arquitetura rodando com essa tecnologia não se preocupe, o processo é similar e existem vários artigos que você pode consultar, o importante é que você entenda o fluxo de shutdown e aplique conforme sua realidade.&lt;/p>
+&lt;/blockquote>
+&lt;p>Sendo assim, o que devemos fazer é &amp;ldquo;escutar&amp;rdquo; esse aviso de desligamento, terminar o que estamos fazendo e desligar o container com a segurança de que nenhum processo estava em andamento, evitando a corrupção dos dados.&lt;/p>
+&lt;p>&lt;img src="images/graceful-shutdown.gif" alt="graceful-shutdown.gif">&lt;/p>
+&lt;hr>
+&lt;h3 id="com-tudo-isso-em-mente-vamos-focar-na-solução">Com tudo isso em mente, vamos focar na solução!&lt;/h3>
+&lt;p>Começando pelo web server, utilizando o &lt;code>php-fpm&lt;/code> esta tarefa é simples. Temos um parâmetro para configurar quanto tempo os &lt;code>child processes&lt;/code> possuem para finalizar o processo atual antes de desligarem:&lt;/p>
+&lt;pre>&lt;code>process_control_timeout = 10s
+&lt;/code>&lt;/pre>&lt;p>Conforme a &lt;a href="https://www.php.net/manual/en/install.fpm.configuration.php#process-control-timeout">documentação oficial&lt;/a>, o valor padrão deste parâmetro é zero, com isso, assim que os &lt;code>child processes&lt;/code> recebem o sinal eles encerram, o que pode ser bastante danoso.&lt;/p>
+&lt;blockquote>
+&lt;p>É importante lembrar que no Kubernetes, depois do alerta, caso o processo não tenha sido encerrado, ele é forçado a encerrar, então o valor deste parâmetro precisa dar match com o tempo máximo de uma requisição processada com sucesso e o tempo de espera do Kubernetes até forçar o desligamento.&lt;/p>
+&lt;/blockquote>
+&lt;hr>
+&lt;h3 id="scripts-de-processamento-em-background-via-php-cli">Scripts de processamento em background, via PHP CLI&lt;/h3>
+&lt;p>Agora vamos falar dos scripts que trabalham em &lt;code>while(true)&lt;/code> e não possuem nada para avisar o loop de que um sinal de desligamento foi enviado.&lt;/p>
+&lt;p>Para resolver este problema, temos uma extensão para o PHP chamada de &lt;code>pcntl&lt;/code> que consegue registrar &lt;em>handlers&lt;/em> para sinais enviados ao processo, ou seja, conseguimos &amp;ldquo;escutar&amp;rdquo; quando o Kubernetes nos avisar que devemos encerrar.&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Importante&lt;/strong>: esta funcionalidade não deve ser habilitada em contextos de web server, exemplo do php-fpm, pois pode ocasionar em comportamentos inesperados. O seu uso correto é para scripts utilizando o PHP CLI.&lt;/p>
+&lt;/blockquote>
+&lt;p>Para facilitar a implementação e utilização desta extensão, criei uma lib bem simples que faz toda essa mágica acontecer:&lt;/p>
+&lt;p>&lt;a href="https://github.com/leocarmo/graceful-shutdown-php">https://github.com/leocarmo/graceful-shutdown-php&lt;/a>&lt;/p>
+&lt;p>Com ela, você consegue garantir que nenhum dado será corrompido caso o desligamento seja necessário e, caso seja necessário, registrar um callback para ser executado antes do desligamento.&lt;/p>
+&lt;p>Se código ficará parecido com este:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-php" data-lang="php">&lt;span style="color:#66d9ef">use&lt;/span> &lt;span style="color:#a6e22e">LeoCarmo\GracefulShutdown\GracefulShutdown&lt;/span>;
+$shutdown &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#66d9ef">new&lt;/span> &lt;span style="color:#a6e22e">GracefulShutdown&lt;/span>();
+&lt;span style="color:#66d9ef">while&lt;/span> (&lt;span style="color:#f92672">!&lt;/span> $shutdown&lt;span style="color:#f92672">-&amp;gt;&lt;/span>&lt;span style="color:#a6e22e">signalReceived&lt;/span>()) {
+&lt;span style="color:#66d9ef">echo&lt;/span> &lt;span style="color:#e6db74">&amp;#39;Start long task...&amp;#39;&lt;/span> &lt;span style="color:#f92672">.&lt;/span> &lt;span style="color:#a6e22e">PHP_EOL&lt;/span>;
+&lt;span style="color:#a6e22e">sleep&lt;/span>(&lt;span style="color:#a6e22e">sleep&lt;/span>(&lt;span style="color:#ae81ff">5&lt;/span>)); &lt;span style="color:#75715e">// --&amp;gt; when a signal is sent, sleep returns the number of seconds left
+&lt;/span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#66d9ef">echo&lt;/span> &lt;span style="color:#e6db74">&amp;#39;End long task...&amp;#39;&lt;/span> &lt;span style="color:#f92672">.&lt;/span> &lt;span style="color:#a6e22e">PHP_EOL&lt;/span>;
+}
+&lt;span style="color:#66d9ef">echo&lt;/span> &lt;span style="color:#e6db74">&amp;#39;Graceful shutdown!&amp;#39;&lt;/span>;
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Por ora é isso, espero poder te ajudar a construir aplicações mais consistentes e evitar a corrupção de dados, tanto no fluxo de requisições, quanto via scripts. (:&lt;/p></content></item><item><title>Guia: Alta performance com PHP — Suas aplicações backend no próximo nível</title><link>/guia-alta-performance-com-php-suas-aplicacoes-backend-no-proximo-nivel/</link><pubDate>Tue, 12 May 2020 19:30:00 -0300</pubDate><guid>/guia-alta-performance-com-php-suas-aplicacoes-backend-no-proximo-nivel/</guid><description>Muitas pessoas dizem que alta performance e PHP não existem na mesma frase. Se você ainda pensa assim, vou te provar o contrário.
+O PHP é muito poderoso, só depende de nós utilizá-lo da melhor forma. Meu objetivo com esta publicação é ajudar nesta jornada.
+Todo mundo já sabe que grandes empresas usam PHP, mas esse não é o argumento mais forte ao se falar sobre este assunto.
+Argumentos fortes são: aplicações poderosas, resoluções de problemas de forma inteligente e implementações diferentes do comum.</description><content>&lt;p>Muitas pessoas dizem que alta performance e PHP não existem na mesma frase. Se você ainda pensa assim, vou te provar o contrário.&lt;/p>
+&lt;p>O PHP é muito poderoso, só depende de nós utilizá-lo da melhor forma. Meu objetivo com esta publicação é ajudar nesta jornada.&lt;/p>
+&lt;p>Todo mundo já sabe que grandes empresas usam PHP, mas esse não é o argumento mais forte ao se falar sobre este assunto.&lt;/p>
+&lt;p>Argumentos fortes são: aplicações poderosas, resoluções de problemas de forma inteligente e implementações diferentes do comum. E vamos falar muito sobre isso aqui!&lt;/p>
+&lt;p>Não vou abordar apenas tópicos voltados ao código, a ideia é falar sobre o ambiente como um todo: arquitetura, implementações e, claro, código.&lt;/p>
+&lt;p>Um ponto importante é que vamos focar exclusivamente em aplicações backend, funcionando sem renderização de views. Pois, caso sua aplicação seja full stack, muitas outras otimizações ainda precisam ser feitas.&lt;/p>
+&lt;p>Começaremos do básico e vamos aprofundando em assuntos mais complexos aos poucos. Alguns tópicos irei apenas trazer ideias iniciais, e depois te direcionar para outras publicações onde você possa estudar e entender mais sobre eles.&lt;/p>
+&lt;p>Quero te guiar pelas melhores práticas para conseguir, de fato, elevar o nível das suas aplicações de forma fácil e objetiva. Então bora lá!&lt;/p>
+&lt;h4 id="tópicos">Tópicos&lt;/h4>
+&lt;ol>
+&lt;li>&lt;a href="#1-atualize-tudo-sempre">Atualize TUDO, sempre!&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#2-refatore-sua-infraestrutura">Refatore sua infraestrutura&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#3-boas-pr%C3%A1ticas-e-padr%C3%B5es-de-projeto">Boas práticas e padrões de projeto&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#4-frameworks">Frameworks&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#5-otimizando-o-php-fpm">Otimizando o PHP-FPM&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#6-o-poder-do-opcache">O poder do OPcache&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#7-utilize-cache-em-mem%C3%B3ria">Utilize cache em memória&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#8-conex%C3%B5es-persistentes">Conexões persistentes&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#9-fun%C3%A7%C3%B5es-nativas">Funções nativas&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#10-preloading">Preloading&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#11-generators">Generators&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#12-c%C3%B3digo-ass%C3%ADncrono">Código assíncrono&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#13-non-blocking-io-com-php">Non-blocking I/O com PHP&lt;/a>&lt;/li>
+&lt;/ol>
+&lt;hr>
+&lt;h2 id="1-atualize-tudo-sempre">1. Atualize TUDO, sempre!&lt;/h2>
+&lt;p>É, parece bem óbvio. Mas quando foi a última vez que você atualizou as dependências do seu projeto? E a versão do PHP?&lt;/p>
+&lt;p>De acordo com a &lt;a href="https://w3techs.com/technologies/details/pl-php">W3Techs&lt;/a>, o PHP é utilizado por 78.2% de todos os websites, considerando sua linguagem de backend.&lt;/p>
+&lt;blockquote>
+&lt;p>WOOW THAT’S AWESOME!&lt;/p>
+&lt;/blockquote>
+&lt;p>Nem tanto… Essa é uma das razões de muita gente não gostar de PHP e falar coisas bem ruins (digamos que, nesse caso, não estão errados).&lt;/p>
+&lt;p>A versão 7 é utilizada por apenas 50.8% desses websites. Ou seja, a outra metade está utilizando uma versão terrível…&lt;/p>
+&lt;p>&lt;img src="images/1.png" alt="1.1.png">&lt;/p>
+&lt;p>E ainda fica pior, mesmo na versão 7, menos de 30% estão utilizando uma versão com suporte ativo, analisando o dia que estou escrevendo. E apenas 3.6% estão na ultima versão estável disponível (7.4), o que é péssimo!&lt;/p>
+&lt;p>&lt;img src="images/2.png" alt="1.2.png">&lt;/p>
+&lt;p>Mas o que isso tem a ver com performance? TUDO! Alem de ficar cada vez mais performático, muitas atualizações de segurança são lançadas, o que já seria suficiente para você atualizar seu PHP.&lt;/p>
+&lt;blockquote>
+&lt;p>Lembre-se: alem do PHP, é preciso atualizar suas dependências do composer e suas extensões!&lt;/p>
+&lt;/blockquote>
+&lt;p>Para ver um pouco mais sobre testes de performance, acesse &lt;a href="https://kinsta.com/blog/php-benchmarks/">este link&lt;/a>.&lt;/p>
+&lt;p>&lt;img src="images/3.png" alt="1.3.png">&lt;/p>
+&lt;p>E o &lt;a href="https://stitcher.io/blog/new-in-php-8">8.0 vem aí&lt;/a> com novidades e, claro, mais &lt;a href="https://thephp.website/br/edicao/php-8-jit/">melhorias em performance&lt;/a>. Aqui falamos apenas do PHP, mas temos extensões e bibliotecas também, então: atualize TUDO, sempre!&lt;/p>
+&lt;hr>
+&lt;h2 id="2-refatore-sua-infraestrutura">2. Refatore sua infraestrutura&lt;/h2>
+&lt;p>Mais uma coisa óbvia? Talvez. Mas sabemos que muitos sistemas rodam tudo no mesmo servidor: banco de dados, aplicação, webserver, cache, sistema de arquivos…&lt;/p>
+&lt;p>Algumas pessoas justificam isso dizendo que é para redução de custos. De início tudo bem, mas se seu sistema começar a crescer, essa conta não vai ficar barata. Dividir processamento entre diversos processos vai degradar a performance como um todo, mesmo com muito recurso disponível.&lt;/p>
+&lt;p>Dividir os serviços que você utiliza, permite um gerenciamento por demanda dos recursos. Ou seja, caso seu banco precise de mais memória, apenas ele sofre um upgrade pontual, sem precisar ter uma máquina gigante com tudo dentro.&lt;/p>
+&lt;p>Essa refatoração com certeza vai melhorar a performance do seu sistema como um todo e, dependendo do nível de tráfego, também vai reduzir seus custos e complexidade de gerenciamento.&lt;/p>
+&lt;p>Alguns serviços e dicas que podem ajudar:&lt;/p>
+&lt;ul>
+&lt;li>Nginx no lugar do Apache (&lt;a href="https://serverguy.com/comparison/apache-vs-nginx/">Por quê?&lt;/a> / &lt;a href="https://www.nginx.com/blog/tuning-nginx/">Como?&lt;/a>)&lt;/li>
+&lt;li>Utilize &lt;a href="https://dzone.com/articles/top-10-benefits-of-using-docker">Docker&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/Welcome.html">Elastic container service&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://aws.amazon.com/rds/?nc1=h_ls">Relational database service&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://aws.amazon.com/s3/?nc1=h_ls">Cloud object storage&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;blockquote>
+&lt;p>Você pode usar qualquer cloud provider, os links são para que você conheça mais sobre este tipo de serviço gerenciado.&lt;/p>
+&lt;/blockquote>
+&lt;p>Esse é o básico para que você comece a refatorar sua infraestrutura. Existem muitos outros serviços interessantes que também podem ajudar, vamos falar sobre alguns deles em outros tópicos.&lt;/p>
+&lt;hr>
+&lt;h2 id="3-boas-práticas-e-padrões-de-projeto">3. Boas práticas e padrões de projeto&lt;/h2>
+&lt;p>Não vou abordar cada padrão de projeto aqui, a ideia é ressaltar a importância de levar tudo isso muito a sério.&lt;/p>
+&lt;p>Por mais que sempre lemos essas palavras por aí, estamos realmente colocando isso em prática? Dentre todos os benefícios, performance com certeza está entre eles.&lt;/p>
+&lt;p>Podemos destacar a &lt;a href="https://szymonkrajewski.pl/why-should-you-return-early/">early return pattern&lt;/a>, que influencia diretamente a performance das aplicações quando trabalhamos com altas volumetrias. Quanto mais rápido conseguirmos responder uma requisição, mais rápido estaremos prontos para a próxima!&lt;/p>
+&lt;p>Utilizar padrões de projeto e boas práticas é trazer soluções inteligentes e performáticas para suas aplicações, então, sempre que fizer sentido, utilize!&lt;/p>
+&lt;blockquote>
+&lt;p>Mas atenção, &lt;a href="https://en.wikipedia.org/wiki/KISS_principle">KISS&lt;/a>! Padrões não são soluções para tudo, saiba utilizar de forma inteligente e não como bala de prata.&lt;/p>
+&lt;/blockquote>
+&lt;p>Alguns materiais para se aprofundar no assunto:&lt;/p>
+&lt;ul>
+&lt;li>&lt;a href="https://sourcemaking.com/design_patterns">Design patterns&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://scotch.io/bar-talk/s-o-l-i-d-the-first-five-principles-of-object-oriented-design">SOLID&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.php-fig.org/psr/">PHP Standards Recommendations&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://en.wikipedia.org/wiki/Don%27t_repeat_yourself">Don’t repeat yourself&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://github.com/leocarmo/circuit-breaker-php">Circuit Breaker Pattern&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;hr>
+&lt;h2 id="4-frameworks">4. Frameworks&lt;/h2>
+&lt;p>Este sempre acaba sendo um assunto polêmico. Então, vamos tirar um pouco o foco apenas da perfomance e pensar em outros tópicos importantes para este assunto.&lt;/p>
+&lt;p>A escolha de um framework tem que levar outros aspectos em consideração, entre eles gostaria de destacar alguns:&lt;/p>
+&lt;ul>
+&lt;li>A equipe está confortável em trabalhar com ele?&lt;/li>
+&lt;li>A comunidade é ativa?&lt;/li>
+&lt;li>Ele é atualizado com qual frequência?&lt;/li>
+&lt;li>A documentação é bem estruturada?&lt;/li>
+&lt;li>Já pensou em usar um micro-framework?&lt;/li>
+&lt;/ul>
+&lt;p>Estes são pontos que podem influenciar o futuro da sua aplicação, pois, se não for atualizado com frequência, sua performance pode ser degradada. Se a comunidade não estiver ativa o suficiente, o mesmo pode acontecer.&lt;/p>
+&lt;p>Então, ao escolher, leve em consideração outros aspectos importantes.&lt;/p>
+&lt;hr>
+&lt;h2 id="5-otimizando-o-php-fpm">5. Otimizando o PHP-FPM&lt;/h2>
+&lt;p>Iniciando os tópicos um pouco mais avançados, vamos falar sobre o &lt;a href="https://www.php.net/manual/en/install.fpm.php">php-fpm&lt;/a>. Aqui, vamos considerar que você já utiliza o Nginx com o php-fpm e que já &lt;a href="https://www.inmotionhosting.com/support/website/php-fpm-the-future-of-php-handling/">saiba como ele funciona&lt;/a>, pelo menos de forma básica. Se não utiliza, a primeira recomendação é mudar para essa combinação extremamente poderosa.&lt;/p>
+&lt;p>As configurações que vamos abordar aqui, leva em consideração que seu sistema tem um grande volume de requisições.&lt;/p>
+&lt;p>Vamos focar aqui na configuração dos processos que serão abertos e gerenciados pelo fpm. Com isso, a melhor forma de gerenciar estes processos em alta volumetria é de forma estática. Assim, o fpm não vai precisar se preocupar em aumentar ou diminuir cada um deles.&lt;/p>
+&lt;p>Outro ponto importante é a quantidade de requisições que cada processo irá processar antes de ser renovado. Temos que pensar no equilíbrio, pois, enquanto um número muito alto pode causar um &lt;a href="https://medium.com/@FreeDev/tenha-cuidado-com-o-memory-leak-b171622b4c6b">memory leak&lt;/a>, um número muito baixo pode fazer com que, a todo momento, o fpm tenha que lidar com o start de um novo processo. Então saiba quanto cada uma das suas requisições utiliza de memória para ajustar essa configuração, para isso faça &lt;a href="https://stackify.com/php-profiling-find-slow-code/">profilling&lt;/a>!&lt;/p>
+&lt;p>Sendo assim, um exemplo de configuração seria:&lt;/p>
+&lt;pre>&lt;code>[api]
+pm = static
+pm.max_children = 16
+pm.max_requests = 10000
+&lt;/code>&lt;/pre>&lt;p>Com workers estáticos já teremos uma grande diferença. Claro, existem diversas outras configurações, então para saber um pouco mais, aqui tem &lt;a href="https://geekflare.com/php-fpm-optimization/">um artigo&lt;/a> abordando mais sobre este assunto.&lt;/p>
+&lt;hr>
+&lt;h2 id="6-o-poder-do-opcache">6. O poder do OPcache&lt;/h2>
+&lt;p>Esta é uma extensão muito poderosa para o PHP, se você não utiliza, pare tudo e implemente o quanto antes! Para uma rápida introdução, o que diz a &lt;a href="https://www.php.net/manual/en/book.opcache.php">documentação&lt;/a>:&lt;/p>
+&lt;blockquote>
+&lt;p>OPcache improves PHP performance by storing precompiled script bytecode in shared memory, thereby removing the need for PHP to load and parse scripts on each request.&lt;/p>
+&lt;/blockquote>
+&lt;p>Com isso, já da pra sentir o poder que ele pode dar para suas aplicações. Todo o sistema será compilado apenas uma vez e estará disponível em memória para as próximas requisições. Show!&lt;/p>
+&lt;p>Um benchmark para mostrar o poder do OPcache:&lt;/p>
+&lt;p>&lt;img src="images/4.png" alt="opcache.png">&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;a href="https://www.ibexa.co/blog/benchmarking-php-7.3-vs-7.4-with-symfony-4.4-trouble-with-opcache-preloading">Fonte da imagem&lt;/a>&lt;/p>
+&lt;/blockquote>
+&lt;p>Começar a utilizar é muito fácil, basta instalar, configurar e pronto! Porém, como aponta a documentação, todos os scripts vão para memória. Isso significa que, caso não utilize container, ao atualizar seu projeto, é preciso dar um reload no seu processo do fpm para que ele limpe os scripts antigos e recompile os novos.&lt;/p>
+&lt;p>Vou deixar aqui uma configuração bem interessante para iniciar:&lt;/p>
+&lt;pre>&lt;code>[opcache]
+opcache.enable=1
+opcache.memory_consumption=128
+opcache.max_accelerated_files=4000
+opcache.validate_timestamps=0
+opcache.interned_strings_buffer=12
+opcache.use_cwd=0
+&lt;/code>&lt;/pre>&lt;p>Existem &lt;a href="https://www.php.net/manual/en/opcache.configuration.php">diversas configurações disponíveis&lt;/a>, basta dar uma olhada na documentação e configurar conforme fizer sentido para sua aplicação. Para saber mais sobre o OPcache, existem muitos materiais bacanas disponíveis, &lt;a href="https://www.cloudways.com/blog/integrate-php-opcache/">aqui tem um&lt;/a>.&lt;/p>
+&lt;hr>
+&lt;h2 id="7-utilize-cache-em-memória">7. Utilize cache em memória&lt;/h2>
+&lt;p>&amp;ldquo;Cachear&amp;rdquo; sua aplicação de forma inteligente pode ser uma das coisas mais importantes para se obter um ganho expressivo em performance e redução de custos.&lt;/p>
+&lt;p>Sabe quando você precisa utilizar um mesmo código em dois lugares diferentes e, para isso, você cria um método que possui esse mesmo &amp;ldquo;trabalho&amp;rdquo; a ser feito? Utilizar cache é basicamente armazenar um trabalho já feito para ser reaproveitado.&lt;/p>
+&lt;p>Os ganhos? Performance claro, se aquele trabalho demorava 1s, usando cache pode chegar a demorar 5ms. Sim, é muito poderoso. E isso nos leva a redução de custos, na aplicação e no banco de dados, pois a ideia é reduzir as chamadas ao banco também.&lt;/p>
+&lt;p>Não existe uma estratégia pronta para isso, quem define é você. Mas o direcionamento do pensamento é: posso reutilizar um trabalho já feito para as próximas requisições? Um exemplo prático e simples: um blog possui uma sessão de &amp;ldquo;mais visualizados&amp;rdquo;, para isso, é preciso pegar todas as publicações e ordena-las pelo número de views. A cada requisição você realmente precisa fazer isso? Ou pode armazenar esse trabalho durante um tempo? Então utilize cache por 30m por exemplo. Pode confiar, os ganhos são infinitos!&lt;/p>
+&lt;p>Falando de cache em alta performance, eu focaria em duas opções: &lt;a href="https://redis.io/">Redis&lt;/a> ou &lt;a href="https://memcached.org/">Memcached&lt;/a>. Existem outras alternativas, mas eu iria com um deles, e entre os dois: Redis. Além de mais performático, ele possui diversas &lt;a href="https://aws.amazon.com/elasticache/redis-vs-memcached/">outras vantagens&lt;/a>.&lt;/p>
+&lt;p>&lt;img src="images/5.png" alt="7.png">&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;a href="http://oldblog.antirez.com/post/redis-memcached-benchmark.html">Fonte do benchmark&lt;/a>&lt;/p>
+&lt;/blockquote>
+&lt;p>&lt;strong>Bônus:&lt;/strong> utilizando &lt;a href="https://github.com/phpredis/phpredis">essa extensão&lt;/a> do Redis para PHP, você tem ainda mais poder de otimização e assume o controle total do Redis de forma fácil e eficiente. É possível, por exemplo, armazenar suas sessões do PHP no Redis, ou seja, não precisa mais se preocupar com a performance do storage da aplicação, sua aplicação vai voar! :)&lt;/p>
+&lt;hr>
+&lt;h2 id="8-conexões-persistentes">8. Conexões persistentes&lt;/h2>
+&lt;p>Esse é um assunto que vi sendo abordado poucas vezes, quando o assunto é performance. Conexões persistentes são muito poderosas para trabalhar em alta volumetria.&lt;/p>
+&lt;p>Na verdade, ouvimos falar sobre &lt;a href="https://en.wikipedia.org/wiki/HTTP_persistent_connection">conexões http persistentes&lt;/a>, mas elas não são as únicas que sua aplicação precisa lidar. Temos também ao banco de dados e ao Redis, por exemplo.&lt;/p>
+&lt;p>Vou utilizar a do banco de dados como exemplo. Lembra do php-fpm que gerencia seus processos? Certo! Vamos pensar que ele processou as 10 mil requisições que configuramos e que todas as requisições precisaram ir ao banco de dados duas vezes. Com uma conexão tradicional, apenas uma seria aberta para realizar as duas queries, show! Mas pensando em um ambiente macro, nessas 10 mil requisições teríamos que fazer isso 10 mil vezes!&lt;/p>
+&lt;p>O recurso computacional exigido nesse processo, tanto da aplicação, quanto do banco de dados é de se levar em consideração. Com isso, podemos utilizar as conexões persistentes e reaproveitar uma conexão já aberta para esse processo e com certeza ter um ganho expressivo em recursos e performance, claro.&lt;/p>
+&lt;p>E para utilizar é bem simples, basta passar o parâmetro de configuração &lt;code>PDO::ATTR_PERSISTENT&lt;/code> ao driver de conexão como &lt;code>true&lt;/code>. Para saber um pouco mais vale conferir a &lt;a href="https://www.php.net/manual/en/pdo.connections.php">documentação oficial&lt;/a>.&lt;/p>
+&lt;p>Caso queira ler um pouco mais, vou deixar um &lt;a href="https://www.valinv.com/dev/mysql-mysql-persistent-connections-in-php">link interessante aqui&lt;/a> sobre conexões persistentes ao banco de dados.&lt;/p>
+&lt;p>Ao utilizar o Redis com &lt;a href="https://github.com/phpredis/phpredis#pconnect-popen">PhpRedis&lt;/a> (o mais recomendado), basta mudar a forma de conectar para &lt;code>$redis-&amp;gt;pconnect()&lt;/code> , simples assim!&lt;/p>
+&lt;hr>
+&lt;h2 id="9-funções-nativas">9. Funções nativas&lt;/h2>
+&lt;p>Bom, todos sabemos que &lt;a href="https://www.php.net/manual/en/indexes.functions.php">elas existem&lt;/a>. Mas realmente usamos? Aqui tem um &lt;a href="https://www.exakat.io/top-100-php-functions/">top 100&lt;/a> das funções nativas mais utilizadas em projetos open source. Não quero entrar no mérito se foram bem utilizadas ou não, mas é um ranking interessante para analisar quais são mais utilizadas e dar um primeiro passo.&lt;/p>
+&lt;p>Hoje em dia, eu quase nunca utilizo loops na mão. Isso porque consigo resolver quase tudo com funções nativas, que são mais performáticas. Elas também ajudam bastante quando pensamos em manutenção de código, pois facilitam o entendimento na hora de ler.&lt;/p>
+&lt;p>Um teste rápido, qual você consegue entender mais rápido?&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-php" data-lang="php">&lt;span style="color:#75715e">// Job
+&lt;/span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">function&lt;/span> &lt;span style="color:#a6e22e">cube&lt;/span>($number) {
+&lt;span style="color:#66d9ef">return&lt;/span> ($number &lt;span style="color:#f92672">*&lt;/span> $number &lt;span style="color:#f92672">*&lt;/span> $number);
+}
+&lt;span style="color:#75715e">// Without native
+&lt;/span>&lt;span style="color:#75715e">&lt;/span>$cubes &lt;span style="color:#f92672">=&lt;/span> [];
+&lt;span style="color:#66d9ef">foreach&lt;/span>($numbers &lt;span style="color:#66d9ef">as&lt;/span> $number) {
+$cubes[] &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#a6e22e">cube&lt;/span>($number);
+}
+&lt;span style="color:#75715e">// With native
+&lt;/span>&lt;span style="color:#75715e">&lt;/span>$cubes &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#a6e22e">array_map&lt;/span>(&lt;span style="color:#e6db74">&amp;#39;cube&amp;#39;&lt;/span>, $numbers);
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Fiz um &lt;a href="https://gist.github.com/leocarmo/4a1320da1b61523c0c8d00ef2a3524e3">benchmark rápido&lt;/a> com esse código, e utilizando &lt;code>array_map&lt;/code> consegui um resultado quase 15% mais performático, testando um array com 1.000.000 elementos 1.000 vezes.&lt;/p>
+&lt;p>Uma outra solução que gosto bastante é utilizar &lt;a href="https://laravel.com/docs/7.x/collections">Laravel Collections&lt;/a>. O código fica mais limpo e legível, além de utilizar diversas funções nativas &amp;ldquo;por baixo&amp;rdquo;.&lt;/p>
+&lt;hr>
+&lt;h2 id="10-preloading">10. Preloading&lt;/h2>
+&lt;p>O PHP 7.4 veio com uma novidade bem bacana, o preloading do &lt;a href="https://leonardocarmo.medium.com/guia-alta-performance-com-php-suas-aplica%C3%A7%C3%B5es-backend-no-pr%C3%B3ximo-n%C3%ADvel-c0a3ca9aed10#9c93">OPcache&lt;/a>, que falamos ali em cima. Resolvi falar sobre isso separadamente para entrar um pouco mais no detalhe, e por serem coisas diferentes mas complementares.&lt;/p>
+&lt;p>&lt;strong>E qual a diferença, na prática, em usar esse preloading?&lt;/strong>&lt;/p>
+&lt;p>Como já sabemos, a principal característica do OPcache é armazenar os arquivos já compilados (&amp;ldquo;opcodes&amp;rdquo;) em memória para serem reutilizados. Certo, já falamos sobre isso. Mas ele faz isso sem relacionar tudo que foi compilado e não consegue resolver dependências entre as classes quando chegar uma requisição, ou seja, já está tudo em memória, mas quando uma classe herda outra, essa relação precisa ser vinculada.&lt;/p>
+&lt;p>Sendo assim, a cada requisição, ele precisa vincular as dependências entre as classes em tempo de execução. Lembra do ponto em reaproveitar trabalho? Bom, se podemos reaproveitar, podemos ganhar performance!&lt;/p>
+&lt;p>Para implementar esse preloading, alguns frameworks já trazem alguma solução pronta, como por exemplo o &lt;a href="https://symfony.com/blog/new-in-symfony-4-4-preloading-symfony-applications-in-php-7-4">Symfony&lt;/a>.&lt;/p>
+&lt;p>Mas nada que não possa ser feito em outro framework. Basicamente é apontar um arquivo de preload no seu &lt;code>php.ini&lt;/code> dentro das configurações do OPcache.&lt;/p>
+&lt;pre>&lt;code>opcache.preload=/path/to/project/preload.php
+&lt;/code>&lt;/pre>&lt;p>E dentro deste arquivo, carregar todo o seu projeto.&lt;/p>
+&lt;pre>&lt;code>$files = require 'vendor/composer/autoload_classmap.php';
+foreach (array_unique($files) as $file) {
+opcache_compile_file($file);
+}
+&lt;/code>&lt;/pre>&lt;p>Bom, neste exemplo iríamos carregar o projeto todo. Para iniciar não é ruim, mas tendo em mente que é preciso melhorar.&lt;/p>
+&lt;p>Nosso projeto não utiliza TODOS os arquivos e TODAS classes que temos, então qual motivo de carregar tudo?&lt;/p>
+&lt;p>Aqui tem uma thread para se adicionar o preloading no composer de forma nativa, &lt;a href="https://github.com/composer/composer/issues/7777#issuecomment-440268416">mas tem um comentário&lt;/a> bem bacana sobre os ganhos de fazer um preloading apenas das classes mais utilizadas no projeto.&lt;/p>
+&lt;p>&lt;img src="images/6.png" alt="10.1.png">&lt;/p>
+&lt;p>Com isso, da para ter uma ideia do custo/benefício de cada abordagem. Eu recomendo o preloading apenas das classes principais. Mas, você pode começar fazendo do projeto todo para ter um ganho inicial.&lt;/p>
+&lt;p>Até o momento, ainda não utilizei &lt;a href="https://github.com/DarkGhostHunter/Preloader">esta lib&lt;/a>, mas achei bem interessante a ideia e pretendo utilizar. Quando fizer, coloco aqui os resultados.&lt;/p>
+&lt;p>&lt;a href="https://stitcher.io/blog/preloading-in-php-74">Aqui tem um artigo&lt;/a> bacana sobre esse assunto, onde você pode se aprofundar um pouco mais.&lt;/p>
+&lt;p>&lt;strong>Bônus:&lt;/strong> como falamos sobre o composer, não vou abrir uma sessão exclusiva pra isso, acho que podemos resumir rapidamente o que precisa ser feito para otimizá-lo. Na &lt;a href="https://getcomposer.org/doc/articles/autoloader-optimization.md">documentação oficial&lt;/a> tem os detalhes, então para instalar seu projeto em produção utilize estas instruções:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">/usr/bin/composer install --no-dev -o -a
+&lt;/code>&lt;/pre>&lt;/div>&lt;hr>
+&lt;h2 id="11-generators">11. Generators&lt;/h2>
+&lt;p>Essa também é uma ferramenta bem poderosa que temos, não apenas no PHP, mas em todo o ecossistema de desenvolvimento. Na &lt;a href="https://www.php.net/manual/en/language.generators.overview.php">documentação oficial&lt;/a>, temos um detalhamento melhor sobre isso, mas podemos resumir em dois itens:&lt;/p>
+&lt;ul>
+&lt;li>É uma forma simples de escrever &lt;a href="https://www.php.net/manual/en/language.oop5.iterations.php">iterators&lt;/a>&lt;/li>
+&lt;li>É possível iterar dados sem precisar construir um array em memória&lt;/li>
+&lt;/ul>
+&lt;p>Com isso em mente, e ainda analisando a documentação oficial, temos um exemplo de implementação de um &lt;code>range()&lt;/code> que vou fazer uma alteração para ilustrar melhor a ideia:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-php" data-lang="php">&lt;span style="color:#75715e">// range nativo
+&lt;/span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">foreach&lt;/span> (&lt;span style="color:#a6e22e">range&lt;/span>(&lt;span style="color:#ae81ff">1&lt;/span>, &lt;span style="color:#ae81ff">1_000_000&lt;/span>) &lt;span style="color:#66d9ef">as&lt;/span> $number) {
+&lt;span style="color:#66d9ef">echo&lt;/span> $number &lt;span style="color:#f92672">.&lt;/span> &lt;span style="color:#a6e22e">PHP_EOL&lt;/span>;
+}
+&lt;span style="color:#75715e">// range com generator
+&lt;/span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">function&lt;/span> &lt;span style="color:#a6e22e">xrange&lt;/span>(&lt;span style="color:#a6e22e">int&lt;/span> $start, &lt;span style="color:#a6e22e">int&lt;/span> $end) {
+&lt;span style="color:#66d9ef">for&lt;/span> ($i &lt;span style="color:#f92672">=&lt;/span> $start; $i &lt;span style="color:#f92672">&amp;lt;=&lt;/span> $end; $i&lt;span style="color:#f92672">++&lt;/span>) {
+&lt;span style="color:#66d9ef">yield&lt;/span> $i;
+}
+}
+&lt;span style="color:#66d9ef">foreach&lt;/span> (&lt;span style="color:#a6e22e">xrange&lt;/span>(&lt;span style="color:#ae81ff">1&lt;/span>, &lt;span style="color:#ae81ff">1_000_000&lt;/span>) &lt;span style="color:#66d9ef">as&lt;/span> $number) {
+&lt;span style="color:#66d9ef">echo&lt;/span> $number &lt;span style="color:#f92672">.&lt;/span> &lt;span style="color:#a6e22e">PHP_EOL&lt;/span>;
+}
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Se você tentar rodar esse código, pode ser que você receba um: &lt;code>Fatal error: Allowed memory size&lt;/code> (dependendo da sua configuração no &lt;code>php.ini&lt;/code>).&lt;/p>
+&lt;p>Na implementação nativa do &lt;code>range&lt;/code>, por ele tentar alocar em memória 1M de integers, você pode explodir seu script por falta de memória. O que no &lt;code>xrange&lt;/code> não ocorre, pois ele alocou apenas 1. Sim, isso mesmo, apenas 1.&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Que diferença hein?!&lt;/strong>&lt;/p>
+&lt;/blockquote>
+&lt;p>Isso ocorre pois o retorno vai &amp;ldquo;passo a passo&amp;rdquo;, retornando um generator para que o &lt;code>foreach&lt;/code> o execute um a um. É uma prática bem comum utilizar essa técnica ao ler arquivos bem grandes.&lt;/p>
+&lt;p>Bom, acho que ja é possível entender os ganhos até aqui de se utilizar essa técnica. Foi pensando nisso que o Laravel implementou as &lt;a href="https://laravel.com/docs/master/collections#lazy-collections">LazyCollections&lt;/a>, por exemplo.&lt;/p>
+&lt;blockquote>
+&lt;p>Mas os generators vão além disso. E é aqui que tudo começa a ficar bem mais interessante! Os generators abrem as portas para se trabalhar com corrotinas utilizando PHP. Sim, muito maneiro! E isso já existe desde a versão 5.5.&lt;/p>
+&lt;/blockquote>
+&lt;p>Aqui o assunto começa a ficar mais complexo, e tudo bem, não é fácil entender tudo isso logo de cara&amp;hellip; É uma forma diferente de manipular e interagir com o estado de uma aplicação, então, antes de avançar, recomendo que você entenda melhor este e outros termos que vamos começar a utilizar daqui pra frente, e como tudo isso se relaciona.&lt;/p>
+&lt;p>Para isso, vou deixar um roteiro de artigos aqui para você:&lt;/p>
+&lt;ul>
+&lt;li>&lt;a href="https://www.treinaweb.com.br/blog/concorrencia-paralelismo-processos-threads-programacao-sincrona-e-assincrona/">Introdução teórica a estes termos&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://thephp.website/br/edicao/voce-achou-que-sabia-sobre-generators/">Entendendo mais sobre generators&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://nikic.github.io/2012/12/22/Cooperative-multitasking-using-coroutines-in-PHP.html">Corrotinas com generators&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;hr>
+&lt;h2 id="12-código-assíncrono">12. Código assíncrono&lt;/h2>
+&lt;p>Bom, a partir daqui, podemos assumir que você já entende a teoria sobre processos assíncronos. Então, nada melhor do que começar a colocar isso em prática!&lt;/p>
+&lt;p>Existem muitas formas de começar, mas quero usar uma abordagem pensando em como melhorar algum serviço que você já tenha funcionando em produção, sem precisar mudar framework ou uma grande quantidade de código.&lt;/p>
+&lt;blockquote>
+&lt;p>Antes de iniciar de fato no código assíncrono, queria apenas pontuar a diferença de se utilizar jobs assíncronos. Não quero entrar muito no detalhe, vou deixar a &lt;a href="https://laravel.com/docs/master/queues">documentação do Laravel&lt;/a> sobre isso, tem bastante conteúdo lá. Também é algo extremamente recomendado ao se pensar em performance, então caso você não conheça, comece a utilizar!&lt;/p>
+&lt;/blockquote>
+&lt;p>Para colocar a mão na massa, queria introduzir a utilização &lt;a href="https://github.com/spatie/async">desta biblioteca&lt;/a>, já utilizei e gostei bastante. Ela resolve um problema clássico onde você precisa buscar dados em diferentes lugares mas eles não são dependentes, ou seja, é possível busca-los ao mesmo tempo e reduzir o tempo de resposta da aplicação.&lt;/p>
+&lt;p>A documentação é bem bacana, tem diversos exemplos e é bem simples de se utilizar. Com pouco código, já é possível conseguir bons resultados, e o melhor, sem precisar alterar todo seu sistema.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-php" data-lang="php">&lt;span style="color:#66d9ef">use&lt;/span> &lt;span style="color:#a6e22e">Spatie\Async\Pool&lt;/span>;
+$pool &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#a6e22e">Pool&lt;/span>&lt;span style="color:#f92672">::&lt;/span>&lt;span style="color:#a6e22e">create&lt;/span>();
+&lt;span style="color:#66d9ef">foreach&lt;/span> ($things &lt;span style="color:#66d9ef">as&lt;/span> $thing) {
+$pool&lt;span style="color:#f92672">-&amp;gt;&lt;/span>&lt;span style="color:#a6e22e">add&lt;/span>(&lt;span style="color:#66d9ef">function&lt;/span> () &lt;span style="color:#66d9ef">use&lt;/span> ($thing) {
+&lt;span style="color:#75715e">// Do a thing
+&lt;/span>&lt;span style="color:#75715e">&lt;/span> })&lt;span style="color:#f92672">-&amp;gt;&lt;/span>&lt;span style="color:#a6e22e">then&lt;/span>(&lt;span style="color:#66d9ef">function&lt;/span> ($output) {
+&lt;span style="color:#75715e">// Handle success
+&lt;/span>&lt;span style="color:#75715e">&lt;/span> })&lt;span style="color:#f92672">-&amp;gt;&lt;/span>&lt;span style="color:#a6e22e">catch&lt;/span>(&lt;span style="color:#66d9ef">function&lt;/span> (&lt;span style="color:#a6e22e">Throwable&lt;/span> $exception) {
+&lt;span style="color:#75715e">// Handle exception
+&lt;/span>&lt;span style="color:#75715e">&lt;/span> });
+}
+$pool&lt;span style="color:#f92672">-&amp;gt;&lt;/span>&lt;span style="color:#a6e22e">wait&lt;/span>();
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Claro, isso é uma abordagem bem inicial. &lt;a href="https://stitcher.io/blog/asynchronous-php">Aqui tem uma publicação&lt;/a> que fala um pouco dessa primeira abordagem e o problema que ela quer resolver. Criar sistemas é assim, saber utilizar a ferramenta correta para resolver um problema específico, e mesmo assim as possibilidades são amplas. Então saiba escolher o que utilizar e quando utilizar!&lt;/p>
+&lt;hr>
+&lt;h2 id="13-non-blocking-io-com-php">13. Non-blocking I/O com PHP&lt;/h2>
+&lt;p>Pode falar, título maneiro né? E sim, muitos programadores realmente duvidam que isso existe no PHP, além de existir é muito poderoso!&lt;/p>
+&lt;p>As primeiras soluções encontradas ao se iniciar nesse assunto no PHP é o &lt;a href="https://amphp.org/">Apm&lt;/a> e o &lt;a href="https://reactphp.org/">ReactPHP&lt;/a>. Sim, vamos falar sobre eles aqui, mas calma, tem mais!&lt;/p>
+&lt;p>Basicamente essas implementações seguem a &lt;a href="https://en.wikipedia.org/wiki/Reactor_pattern">Reactor Design Pattern&lt;/a>, implementando uma arquitetura orientada a eventos, realizando operações I/O de forma não bloqueante, utilizando um &lt;a href="https://reactphp.org/event-loop/">event loop&lt;/a> como core.&lt;/p>
+&lt;p>Com esse event loop, um mar de possibilidades é aberto, podemos implementar servidor http, por exemplo, onde a utilização do Nginx se torna opcional, e não mais obrigatória para rodar seu código.&lt;/p>
+&lt;p>Para iniciar um Hello World no ReactPHP é bem simples, na &lt;a href="https://reactphp.org/">página inicial da documentação&lt;/a> já tem um exemplo bacana. Caso você queira começar a explorar mais sobre ele, a documentação tem bastante conteúdo.&lt;/p>
+&lt;p>&lt;img src="images/7.jpeg" alt="Hello World com ReactPHP">&lt;/p>
+&lt;p>Mas estamos aqui para falar de um framework que entrega o maior nível de performance para aplicações PHP: o &lt;a href="https://www.swoole.co.uk/">Swoole&lt;/a>. Sou um pouco suspeito para falar sobre este assunto, pois quando conheci foi amor a primeira vista. Ele é realmente incrível. Os citados acima também são interessantes, acho que vale a pena conhecer, mas se for para escolher, com certeza vou de Swoole!&lt;/p>
+&lt;p>&lt;img src="images/8.png" alt="13.2.png">&lt;/p>
+&lt;blockquote>
+&lt;p>Funcionamento do PHP-FPM + Nginx vs. Swoole&lt;/p>
+&lt;/blockquote>
+&lt;p>Uma das coisas que achei sensacional foi o suporte nativo de múltiplos cores de CPU e &lt;a href="https://www.swoole.co.uk/docs/modules/swoole-multiprocessing">multiprocessamento&lt;/a> (&lt;a href="https://pt.wikipedia.org/wiki/Multiprocessamento">?&lt;/a>), dando mais poder para o Swoole.&lt;/p>
+&lt;p>Também é possível &lt;a href="https://www.swoole.co.uk/docs/modules/swoole-process-pool">gerenciar um conjunto de processos&lt;/a> de forma muito fácil. Vamos pensar em um caso de uso real. Você vai realizar diversas operações em um Redis, para isso você precisa de uma conexão. Para extrair o máximo de performance, é recomendado realizar um pool de conexões e reutiliza-las. Como fazer isso então?&lt;/p>
+&lt;p>Primeiro, precisamos iniciar estas conexões. Faremos isso quando um worker do Swoole for iniciado &lt;code>(WorkerStart)&lt;/code>, assim não prejudicamos o tempo das requisições que vão chegar, pois faremos isso antes do worker estar pronto. Iremos utilizar o &lt;a href="https://www.swoole.co.uk/docs/modules/swoole-coroutine-channel">Swoole Coroutine Channel&lt;/a> para compartilhar as conexões abertas entre as requisições.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-php" data-lang="php">&lt;span style="color:#f92672">&amp;lt;?&lt;/span>&lt;span style="color:#a6e22e">php&lt;/span>
+&lt;span style="color:#66d9ef">use&lt;/span> &lt;span style="color:#a6e22e">Swoole\Http\Server&lt;/span>;
+&lt;span style="color:#66d9ef">use&lt;/span> &lt;span style="color:#a6e22e">Swoole\Coroutine\Channel&lt;/span>;
+&lt;span style="color:#66d9ef">use&lt;/span> &lt;span style="color:#a6e22e">Swoole\Coroutine\Redis&lt;/span>;
+$server &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#66d9ef">new&lt;/span> &lt;span style="color:#a6e22e">Server&lt;/span>(&lt;span style="color:#e6db74">&amp;#39;0.0.0.0&amp;#39;&lt;/span>, &lt;span style="color:#ae81ff">8000&lt;/span>);
+$chan &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#66d9ef">new&lt;/span> &lt;span style="color:#a6e22e">Channel&lt;/span>(&lt;span style="color:#ae81ff">100&lt;/span>);
+$server&lt;span style="color:#f92672">-&amp;gt;&lt;/span>&lt;span style="color:#a6e22e">on&lt;/span>(
+&lt;span style="color:#e6db74">&amp;#39;WorkerStart&amp;#39;&lt;/span>,
+&lt;span style="color:#66d9ef">function&lt;/span> (&lt;span style="color:#a6e22e">Server&lt;/span> $server) &lt;span style="color:#66d9ef">use&lt;/span> ($chan) {
+&lt;span style="color:#66d9ef">for&lt;/span> ($i &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#ae81ff">0&lt;/span>; $i &lt;span style="color:#f92672">&amp;lt;&lt;/span> &lt;span style="color:#ae81ff">100&lt;/span>; $i&lt;span style="color:#f92672">++&lt;/span>) {
+$redis &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#66d9ef">new&lt;/span> &lt;span style="color:#a6e22e">Redis&lt;/span>();
+$redis&lt;span style="color:#f92672">-&amp;gt;&lt;/span>&lt;span style="color:#a6e22e">connect&lt;/span>(&lt;span style="color:#e6db74">&amp;#39;127.0.0.1&amp;#39;&lt;/span>, &lt;span style="color:#ae81ff">6379&lt;/span>);
+$chan&lt;span style="color:#f92672">-&amp;gt;&lt;/span>&lt;span style="color:#a6e22e">push&lt;/span>($redis);
+}
+}
+);
+$server&lt;span style="color:#f92672">-&amp;gt;&lt;/span>&lt;span style="color:#a6e22e">on&lt;/span>(
+&lt;span style="color:#e6db74">&amp;#39;request&amp;#39;&lt;/span>,
+&lt;span style="color:#66d9ef">function&lt;/span> ($request, $response) &lt;span style="color:#66d9ef">use&lt;/span> ($chan) {
+&lt;span style="color:#e6db74">/** @var Redis $redis */&lt;/span>
+$redis &lt;span style="color:#f92672">=&lt;/span> $chan&lt;span style="color:#f92672">-&amp;gt;&lt;/span>&lt;span style="color:#a6e22e">pop&lt;/span>();
+$redis&lt;span style="color:#f92672">-&amp;gt;&lt;/span>&lt;span style="color:#a6e22e">set&lt;/span>(&lt;span style="color:#e6db74">&amp;#39;swoole&amp;#39;&lt;/span>, &lt;span style="color:#a6e22e">rand&lt;/span>(&lt;span style="color:#ae81ff">1&lt;/span>, &lt;span style="color:#ae81ff">100&lt;/span>));
+$result &lt;span style="color:#f92672">=&lt;/span> $redis&lt;span style="color:#f92672">-&amp;gt;&lt;/span>&lt;span style="color:#a6e22e">get&lt;/span>(&lt;span style="color:#e6db74">&amp;#39;swoole&amp;#39;&lt;/span>);
+$response&lt;span style="color:#f92672">-&amp;gt;&lt;/span>&lt;span style="color:#a6e22e">end&lt;/span>(&lt;span style="color:#e6db74">&amp;#34;&amp;lt;h1&amp;gt;Hello World. #&lt;/span>&lt;span style="color:#e6db74">{&lt;/span>$result&lt;span style="color:#e6db74">}&lt;/span>&lt;span style="color:#e6db74">&amp;lt;/h1&amp;gt;&amp;#34;&lt;/span>);
+&lt;span style="color:#75715e">// return connection to the channel
+&lt;/span>&lt;span style="color:#75715e">&lt;/span> $chan&lt;span style="color:#f92672">-&amp;gt;&lt;/span>&lt;span style="color:#a6e22e">push&lt;/span>($redis);
+}
+);
+$server&lt;span style="color:#f92672">-&amp;gt;&lt;/span>&lt;span style="color:#a6e22e">start&lt;/span>();
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Neste exemplo acima, podemos ainda implementar um &lt;a href="https://www.swoole.co.uk/docs/modules/swoole-timer">Timer&lt;/a>, que de tempos em tempos valida se todas as conexões estão ativas, caso não esteja, ele renova automaticamente sem afetar uma requisição. Dando mais poder para nossa aplicação.&lt;/p>
+&lt;p>Tudo isso se baseando nas &lt;a href="https://www.swoole.co.uk/docs/modules/swoole-coroutine">Swoole Coroutines&lt;/a>, onde ao escrever um código no &amp;ldquo;estilo síncrono&amp;rdquo;, temos todo o poder do async I/O non-blocking proporcionado pelo Swoole, sem precisar ficar escrevendo callbacks e awaits pelo código.&lt;/p>
+&lt;p>O Swoole muda bastante o comportamento do PHP, por exemplo ao reutilizar tudo que foi alocado em memória entre as requisições, antes de utilizar em produção, leia &lt;strong>MUITO&lt;/strong> sobre essa e outras mudanças de comportamento para não enfrentar problemas.&lt;/p>
+&lt;p>É possível rodar aplicações &lt;a href="https://github.com/swooletw/laravel-swoole">Laravel&lt;/a> e &lt;a href="https://www.swoole.co.uk/article/symfony-swoole">Symfony&lt;/a> em cima do Swoole de forma fácil. É bom para começar a entender como ele funciona, mas para atingir a máxima performance, não é o recomendado. Para isso, temos frameworks próprios, por exemplo o &lt;a href="https://www.easyswoole.com/En/Preface/introduction.html">easySwoole&lt;/a> e o &lt;a href="https://hyperf.wiki/2.1/#/en/">Hyperf&lt;/a>.&lt;/p>
+&lt;p>Na documentação oficial, existe uma &lt;a href="https://www.swoole.co.uk/articles">seção de artigos&lt;/a> explicando algumas implementações e uma &lt;a href="https://www.swoole.co.uk/docs/common-questions-index">FAQ&lt;/a>, caso queira se aprofundar mais tem coisa bem bacana por lá.&lt;/p>
+&lt;hr>
+&lt;p>Bom, por enquanto vamos ficando por aqui. Com todas essas dicas, acredito que suas aplicações vão realmente atingir resultados incríveis usando PHP.&lt;/p>
+&lt;p>Depois me conta se essas dicas fizeram efeito nos seus projetos e o quanto isso te ajudou! (:&lt;/p></content></item></channel></rss>

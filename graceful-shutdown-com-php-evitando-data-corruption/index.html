@@ -1,0 +1,168 @@
+<!doctype html><html lang=en>
+<head>
+<title>Graceful Shutdown com PHP - Evitando data corruption :: leocarmo.dev</title>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<meta name=description content="Quando trabalhamos com processos críticos, seja via script em background ou via o fluxo transacional de APIs, temos algo muito importante para considerar: a possibilidade de interromper um processamento antes que ele termine, causando uma corrupção de dados (data corruption).">
+<meta name=keywords content>
+<meta name=robots content="noodp">
+<link rel=canonical href=/graceful-shutdown-com-php-evitando-data-corruption/>
+<link rel=stylesheet href=/assets/style.css>
+<link rel=stylesheet href=/assets/green.css>
+<link rel=stylesheet href=/style.css>
+<link rel=apple-touch-icon href=/img/apple-touch-icon-192x192.png>
+<link rel="shortcut icon" href=/img/favicon/green.png>
+<meta name=twitter:card content="summary">
+<meta property="og:locale" content="en">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Graceful Shutdown com PHP - Evitando data corruption">
+<meta property="og:description" content="Quando trabalhamos com processos críticos, seja via script em background ou via o fluxo transacional de APIs, temos algo muito importante para considerar: a possibilidade de interromper um processamento antes que ele termine, causando uma corrupção de dados (data corruption).">
+<meta property="og:url" content="/graceful-shutdown-com-php-evitando-data-corruption/">
+<meta property="og:site_name" content="leocarmo.dev">
+<meta property="og:image" content="/graceful-shutdown-com-php-evitando-data-corruption/images/graceful-shutdown.png">
+<meta property="og:image:width" content="2048">
+<meta property="og:image:height" content="1024">
+<meta property="article:published_time" content="2021-05-10 19:24:26 -0300 -0300">
+</head>
+<body class=green>
+<div class="container center headings--one-size">
+<header class=header>
+<div class=header__inner>
+<div class=header__logo>
+<a href=/>
+<div class=logo>
+leocarmo.dev
+</div>
+</a>
+</div>
+<div class=menu-trigger>menu</div>
+</div>
+<nav class=menu>
+<ul class="menu__inner menu__inner--desktop">
+<li><a href=https://github.com/leocarmo>github</a></li>
+<li><a href=https://www.linkedin.com/in/leonardocarmo/>linkedin</a></li>
+<li><a href=/index.xml>rss</a></li>
+</ul>
+<ul class="menu__inner menu__inner--mobile">
+<li><a href=https://github.com/leocarmo>github</a></li>
+<li><a href=https://www.linkedin.com/in/leonardocarmo/>linkedin</a></li>
+<li><a href=/index.xml>rss</a></li>
+</ul>
+</nav>
+</header>
+<div class=content>
+<div class=post>
+<h1 class=post-title>
+<a href=/graceful-shutdown-com-php-evitando-data-corruption/>Graceful Shutdown com PHP - Evitando data corruption</a></h1>
+<div class=post-meta>
+<span class=post-date>
+2021-05-10
+</span>
+<span class=post-author>:: leocarmo</span>
+</div>
+<span class=post-tags>
+#<a href=/tags/php/>php</a>&nbsp;
+#<a href=/tags/kubernetes/>kubernetes</a>&nbsp;
+#<a href=/tags/pcntl/>pcntl</a>&nbsp;
+</span>
+<img src=/graceful-shutdown-com-php-evitando-data-corruption/images/graceful-shutdown.png class=post-cover alt="Graceful Shutdown com PHP - Evitando data corruption">
+<div class=post-content><div>
+<p>Quando trabalhamos com processos críticos, seja via script em background ou via o fluxo transacional de APIs, temos algo muito importante para considerar: <strong>a possibilidade de interromper um processamento antes que ele termine, causando uma corrupção de dados (data corruption)</strong>.</p>
+<hr>
+<h3 id=certo-mas-o-que-isso-significa-e-quais-os-impactos>Certo, mas o que isso significa e quais os impactos?<a href=#certo-mas-o-que-isso-significa-e-quais-os-impactos class=hanchor arialabel=Anchor>&#8983;</a> </h3>
+<p>Vamos pensar em um fluxo que conhecemos muito bem hoje: as transações em bancos de dados relacionais. Usamos isso quando precisamos garantir que dados sejam inseridos/alterados/deletados em conjunto, garantindo assim a consistência dos mesmos. Ou seja, se em algum momento da transação algo der errado, realizamos o rollback, caso contrario, o commit da transação.</p>
+<p>Com isso em mente, vamos mudar o contexto para um script em background que precisa realizar uma determinada tarefa com vários steps, normalmente um <code>while(true)</code> que assina um tópico/fila e fica processando sem tempo definido. Mais conhecido como &ldquo;moedor de carne&rdquo; rs…</p>
+<p>Agora vamos pensar que cada loop demore cerca de 1s para realizar a tarefa e este script está em um container que receberá uma nova versão de código, assim, o mesmo precisará ser destruído e um novo assumirá.</p>
+<p>No momento do deploy, o container será forçado a desligar e poderá estar no meio de um processamento, que leva cerca de 1s, lembra?</p>
+<blockquote>
+<p>O que pode acontecer com o que estava sendo feito no loop? Tente pensar antes de continuar!</p>
+</blockquote>
+<p><img src=images/thinking.gif alt=thinking></p>
+<hr>
+<p>Resposta: não sabemos! Ele pode ter forçado o desligamento em qualquer step. Pode ter sido no meio de uma transação de banco onde a mesma vai ficar presa até expirar, seja no envio de dados incompletos para outros serviços, geração de eventos &ldquo;fantasmas&rdquo;, e por aí vai…</p>
+<p>Evitar essa corrupção de dados é uma tarefa bem simples, basta entender esse fluxo de desligamento e terminar de fazer o que estava sendo feito antes de realmente desligar o serviço. Lembrando que isso também vale para APIs, precisamos terminar uma requisição em andamento antes de desligar o serviço.</p>
+<hr>
+<h3 id=processo-de-shutdown-no-kubernetes>Processo de shutdown no Kubernetes<a href=#processo-de-shutdown-no-kubernetes class=hanchor arialabel=Anchor>&#8983;</a> </h3>
+<p>Basicamente podemos resumir em dois momentos, primeiro um aviso de desligamento, conhecido como <code>SIGTERM</code>, e o desligamento forçado, conhecido como <code>SIGKILL</code>, que será enviado caso o container não tenha terminado após o aviso.</p>
+<blockquote>
+<p>Caso queira entender um pouco mais sobre estes sinais, <a href=https://major.io/2010/03/18/sigterm-vs-sigkill/>veja este artigo</a> que explica bem a diferença entre cada um deles.</p>
+</blockquote>
+<p><img src=images/pod-lifecycle.jpeg alt=pod-lifecycle.jpeg></p>
+<p>Podemos ver cada estágio do lifecycle do Pod nesta imagem, onde nosso foco está na última caixinha da direita, onde temos o <code>pre stop hook</code>, que emite o sinal de <code>SIGTERM</code> e aguarda o desligamento do container. Veja o <a href="https://www.youtube.com/watch?v=lnAwa8IFaLU">video completo</a> deste diagrama para mais detalhes.</p>
+<blockquote>
+<p>Para entender cada detalhe deste processo, você pode acessar a <a href=https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination>documentação oficial</a>. Caso você não tenha sua arquitetura rodando com essa tecnologia não se preocupe, o processo é similar e existem vários artigos que você pode consultar, o importante é que você entenda o fluxo de shutdown e aplique conforme sua realidade.</p>
+</blockquote>
+<p>Sendo assim, o que devemos fazer é &ldquo;escutar&rdquo; esse aviso de desligamento, terminar o que estamos fazendo e desligar o container com a segurança de que nenhum processo estava em andamento, evitando a corrupção dos dados.</p>
+<p><img src=images/graceful-shutdown.gif alt=graceful-shutdown.gif></p>
+<hr>
+<h3 id=com-tudo-isso-em-mente-vamos-focar-na-solução>Com tudo isso em mente, vamos focar na solução!<a href=#com-tudo-isso-em-mente-vamos-focar-na-solução class=hanchor arialabel=Anchor>&#8983;</a> </h3>
+<p>Começando pelo web server, utilizando o <code>php-fpm</code> esta tarefa é simples. Temos um parâmetro para configurar quanto tempo os <code>child processes</code> possuem para finalizar o processo atual antes de desligarem:</p>
+<pre><code>process_control_timeout = 10s
+</code></pre><p>Conforme a <a href=https://www.php.net/manual/en/install.fpm.configuration.php#process-control-timeout>documentação oficial</a>, o valor padrão deste parâmetro é zero, com isso, assim que os <code>child processes</code> recebem o sinal eles encerram, o que pode ser bastante danoso.</p>
+<blockquote>
+<p>É importante lembrar que no Kubernetes, depois do alerta, caso o processo não tenha sido encerrado, ele é forçado a encerrar, então o valor deste parâmetro precisa dar match com o tempo máximo de uma requisição processada com sucesso e o tempo de espera do Kubernetes até forçar o desligamento.</p>
+</blockquote>
+<hr>
+<h3 id=scripts-de-processamento-em-background-via-php-cli>Scripts de processamento em background, via PHP CLI<a href=#scripts-de-processamento-em-background-via-php-cli class=hanchor arialabel=Anchor>&#8983;</a> </h3>
+<p>Agora vamos falar dos scripts que trabalham em <code>while(true)</code> e não possuem nada para avisar o loop de que um sinal de desligamento foi enviado.</p>
+<p>Para resolver este problema, temos uma extensão para o PHP chamada de <code>pcntl</code> que consegue registrar <em>handlers</em> para sinais enviados ao processo, ou seja, conseguimos &ldquo;escutar&rdquo; quando o Kubernetes nos avisar que devemos encerrar.</p>
+<blockquote>
+<p><strong>Importante</strong>: esta funcionalidade não deve ser habilitada em contextos de web server, exemplo do php-fpm, pois pode ocasionar em comportamentos inesperados. O seu uso correto é para scripts utilizando o PHP CLI.</p>
+</blockquote>
+<p>Para facilitar a implementação e utilização desta extensão, criei uma lib bem simples que faz toda essa mágica acontecer:</p>
+<p><a href=https://github.com/leocarmo/graceful-shutdown-php>https://github.com/leocarmo/graceful-shutdown-php</a></p>
+<p>Com ela, você consegue garantir que nenhum dado será corrompido caso o desligamento seja necessário e, caso seja necessário, registrar um callback para ser executado antes do desligamento.</p>
+<p>Se código ficará parecido com este:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-php data-lang=php><span style=color:#66d9ef>use</span> <span style=color:#a6e22e>LeoCarmo\GracefulShutdown\GracefulShutdown</span>;
+
+$shutdown <span style=color:#f92672>=</span> <span style=color:#66d9ef>new</span> <span style=color:#a6e22e>GracefulShutdown</span>();
+
+<span style=color:#66d9ef>while</span> (<span style=color:#f92672>!</span> $shutdown<span style=color:#f92672>-&gt;</span><span style=color:#a6e22e>signalReceived</span>()) {
+
+    <span style=color:#66d9ef>echo</span> <span style=color:#e6db74>&#39;Start long task...&#39;</span> <span style=color:#f92672>.</span> <span style=color:#a6e22e>PHP_EOL</span>;
+    <span style=color:#a6e22e>sleep</span>(<span style=color:#a6e22e>sleep</span>(<span style=color:#ae81ff>5</span>)); <span style=color:#75715e>// --&gt; when a signal is sent, sleep returns the number of seconds left
+</span><span style=color:#75715e></span>    <span style=color:#66d9ef>echo</span> <span style=color:#e6db74>&#39;End long task...&#39;</span> <span style=color:#f92672>.</span> <span style=color:#a6e22e>PHP_EOL</span>;
+
+}
+
+<span style=color:#66d9ef>echo</span> <span style=color:#e6db74>&#39;Graceful shutdown!&#39;</span>;
+</code></pre></div><p>Por ora é isso, espero poder te ajudar a construir aplicações mais consistentes e evitar a corrupção de dados, tanto no fluxo de requisições, quanto via scripts. (:</p>
+</div></div>
+<div class=pagination>
+<div class=pagination__title>
+<span class=pagination__title-h>Read other posts</span>
+<hr>
+</div>
+<div class=pagination__buttons>
+<span class="button previous">
+<a href=/hyperf-php-coroutine-framework-baseado-em-swoole/>
+<span class=button__icon>←</span>
+<span class=button__text>Hyperf - PHP Coroutine Framework baseado em Swoole</span>
+</a>
+</span>
+<span class="button next">
+<a href=/guia-alta-performance-com-php-suas-aplicacoes-backend-no-proximo-nivel/>
+<span class=button__text>Guia: Alta performance com PHP — Suas aplicações backend no próximo nível</span>
+<span class=button__icon>→</span>
+</a>
+</span>
+</div>
+</div>
+</div>
+</div>
+<footer class=footer>
+<div class=footer__inner>
+<div class="copyright copyright--user">
+<span>leocarmo.dev</span>
+<span>:: Theme made by <a href=https://twitter.com/panr>panr</a></span>
+</div>
+</div>
+</footer>
+<script src=/assets/main.js></script>
+<script src=/assets/prism.js></script>
+<script>window.onload=function(){let a=document.getElementsByTagName('a'),b=window.location.hostname;for(let c=0;c<a.length;c++){if(a[c].href.includes(b))continue;a[c].setAttribute('target','_blank')}}</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-WG95JRMMET"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date),gtag('config','G-WG95JRMMET')</script>
+</div>
+</body>
+</html>

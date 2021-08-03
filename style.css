@@ -1,0 +1,9 @@
+/** custom css **/
+
+img.post-cover {
+    display: none;
+}
+
+.post .post-content a {
+    color: var(--accent);
+}

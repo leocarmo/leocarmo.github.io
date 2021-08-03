@@ -1,0 +1,525 @@
+<!doctype html><html lang=en>
+<head>
+<title>Hyperf - PHP Coroutine Framework baseado em Swoole :: leocarmo.dev</title>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<meta name=description content="O Hyperf é um framework PHP de alto desempenho e altamente flexível baseado em Swoole 4.5+ com PHP CLI. Ele possui um servidor de corrotina integrado.">
+<meta name=keywords content>
+<meta name=robots content="noodp">
+<link rel=canonical href=/hyperf-php-coroutine-framework-baseado-em-swoole/>
+<link rel=stylesheet href=/assets/style.css>
+<link rel=stylesheet href=/assets/green.css>
+<link rel=stylesheet href=/style.css>
+<link rel=apple-touch-icon href=/img/apple-touch-icon-192x192.png>
+<link rel="shortcut icon" href=/img/favicon/green.png>
+<meta name=twitter:card content="summary">
+<meta property="og:locale" content="en">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Hyperf - PHP Coroutine Framework baseado em Swoole">
+<meta property="og:description" content="O Hyperf é um framework PHP de alto desempenho e altamente flexível baseado em Swoole 4.5+ com PHP CLI. Ele possui um servidor de corrotina integrado.">
+<meta property="og:url" content="/hyperf-php-coroutine-framework-baseado-em-swoole/">
+<meta property="og:site_name" content="leocarmo.dev">
+<meta property="og:image" content="/hyperf-php-coroutine-framework-baseado-em-swoole/images/programming.jpeg">
+<meta property="og:image:width" content="2048">
+<meta property="og:image:height" content="1024">
+<meta property="article:published_time" content="2021-07-15 19:30:00 -0300 -0300">
+</head>
+<body class=green>
+<div class="container center headings--one-size">
+<header class=header>
+<div class=header__inner>
+<div class=header__logo>
+<a href=/>
+<div class=logo>
+leocarmo.dev
+</div>
+</a>
+</div>
+<div class=menu-trigger>menu</div>
+</div>
+<nav class=menu>
+<ul class="menu__inner menu__inner--desktop">
+<li><a href=https://github.com/leocarmo>github</a></li>
+<li><a href=https://www.linkedin.com/in/leonardocarmo/>linkedin</a></li>
+<li><a href=/index.xml>rss</a></li>
+</ul>
+<ul class="menu__inner menu__inner--mobile">
+<li><a href=https://github.com/leocarmo>github</a></li>
+<li><a href=https://www.linkedin.com/in/leonardocarmo/>linkedin</a></li>
+<li><a href=/index.xml>rss</a></li>
+</ul>
+</nav>
+</header>
+<div class=content>
+<div class=post>
+<h1 class=post-title>
+<a href=/hyperf-php-coroutine-framework-baseado-em-swoole/>Hyperf - PHP Coroutine Framework baseado em Swoole</a></h1>
+<div class=post-meta>
+<span class=post-date>
+2021-07-15
+</span>
+<span class=post-author>:: leocarmo</span>
+</div>
+<span class=post-tags>
+#<a href=/tags/php/>php</a>&nbsp;
+#<a href=/tags/swoole/>swoole</a>&nbsp;
+#<a href=/tags/hyperf/>hyperf</a>&nbsp;
+</span>
+<img src=/hyperf-php-coroutine-framework-baseado-em-swoole/images/programming.jpeg class=post-cover alt="Hyperf - PHP Coroutine Framework baseado em Swoole">
+<div class=post-content><div>
+<p>Durante muito tempo que estudei sobre <a href=https://www.swoole.co.uk/>Swoole</a>, eu sempre fazia as coisas &ldquo;do zero&rdquo; para tentar entender a fundo sobre ele. Cheguei a pesquisar alguns frameworks baseados nele, mas não encontrei nenhum que tenha me chamado a atenção. Então acabei seguindo meus estudos por conta mesmo, até agora.</p>
+<p>Quando conheci o <a href=https://github.com/hyperf/hyperf>Hyperf</a> não imaginei o quanto ele era incrível até começar a descobrir tudo que ele poderia me entregar. Praticamente todos os desafios que eu estava tendo para implementar do zero com Swoole, ele resolveu.</p>
+<p>Pode até parecer ótimo ter tudo pronto, mas do que adianta ter um carro de fórmula 1 se você não souber dirigir? Então não é tão simples assim. É preciso ter uma base de Swoole, programação concorrente, aplicação stateful, etc., para conseguir extrair todo o poder que ele pode te dar.</p>
+<p>A ideia aqui é te ajudar com os primeiros passos e ter um projeto mínimo rodando, pois, só de utilizar o Hyperf como framework, você já conseguirá sentir uma diferença absurda em performance.</p>
+<p>A documentação é bacana, aborda bastante coisa e tem vários exemplos, então vou passar por alguns tópicos e ir referenciando tudo aqui. Alguns conteúdos da documentação ainda estão em chinês, mas estão sendo traduzidos, enquanto isso, é só traduzir que da tudo certo!</p>
+<p>Minha missão aqui é:</p>
+<blockquote>
+<p><strong>Te incentivar a construir as suas próximas aplicações utilizando Hyperf e Swoole.</strong></p>
+</blockquote>
+<p>Então, bora lá!</p>
+<p>Tópicos:</p>
+<ol>
+<li><a href=#1-o-que-e>O que é?</a></li>
+<li><a href=#2-instalacao>Instalação</a></li>
+<li><a href=#3-hot-reload>Hot Reload</a></li>
+<li><a href=#4-estrutura>Estrutura</a></li>
+<li><a href=#5-melhorando-o-ambiente>Melhorando o ambiente</a></li>
+<li><a href=#6-database>Database</a></li>
+<li><a href=#7-rotas-e-controllers>Rotas e Controllers</a></li>
+<li><a href=#8-parallel>Parallel</a></li>
+<li><a href=#9-benchmark>Benchmark</a></li>
+</ol>
+<hr>
+<h2 id=1-o-que-é>1. O que é?<a href=#1-o-que-é class=hanchor arialabel=Anchor>&#8983;</a> </h2>
+<p>O Hyperf é um framework de alto desempenho e altamente flexível baseado em Swoole 4.5+ com <code>PHP CLI</code>. Ele possui um servidor de corrotina integrado com diversos componentes comumente usados.</p>
+<p>Durante cerca de meio ano, o Hyperf foi testado em diversas companhias pelo mundo, após ótimos resultados, ele foi liberado para a comunidade em 20/06/2019.</p>
+<blockquote>
+<p>Os dois trechos acima foram retirados e traduzidos da <a href=https://hyperf.wiki/2.1/#/en/README>documentação oficial</a></p>
+</blockquote>
+<p>Caso você não conheça o Swoole PHP, recomendo dar uma olhada antes, pois vou assumir que você já conhece a forma com que ele funciona, já que o Hyperf é baseado nele.</p>
+<blockquote>
+<p>Algumas recomendações de leitura para que você conheça e aprenda mais sobre Swoole:</p>
+</blockquote>
+<ul>
+<li><a href=https://www.swoole.co.uk/docs/>O que é Swoole</a></li>
+<li><a href=https://www.swoole.co.uk/how-it-works>Como Swoole funciona</a></li>
+<li><a href=https://www.linkedin.com/pulse/websocket-em-php-sim-%C3%A9-poss%C3%ADvel-ronie-neubauer/>Websocket em PHP com Swoole</a></li>
+<li><a href=https://www.amazon.com.br/Mastering-Swoole-PHP-performance-concurrent-ebook/dp/B0881B227S>Livro Mastering Swoole PHP</a></li>
+<li><a href=https://diegoborgs.com.br/blog/mastering-swoole-php-parte-i-introdu%C3%A7%C3%A3o>Série de resumo do Livro</a></li>
+</ul>
+<p>Uma coisa bem interessante, é que o Hyperf é muito similar ao <a href=https://laravel.com/>Laravel</a>, então se você já trabalhou com Laravel, vai se adaptar muito bem ao Hyperf.</p>
+<p>Por ser baseado em Swoole, ele roda em cima do <code>PHP CLI</code>, sendo stateful, e é extremamente performático comparado ao &ldquo;PHP tradicional&rdquo;, utilizado via <code>php-fpm</code>, e também comparado a outras linguagens. 👀</p>
+<p>A proposta do Hyperf foi trazer todas as features do Swoole de forma simples para a comunidade, fazendo com que não fosse preciso implementar tudo do zero. Grandes exemplos são as pools de conexões, servidor HTTP, TCP, gRPC, <a href=https://hyperf.wiki/2.1/#/en/README>entre outros</a>.</p>
+<p>Para exemplificar como funciona, ao utilizar o client pronto de Redis do Hyperf, você já tem uma pool criada por baixo com o client de Redis do Swoole, o que já ajuda muito na hora de fazer um projeto. A mesma coisa para o Eloquent ORM, ao utiliza-lo no Hyperf, por baixo já está tudo resolvido.</p>
+<blockquote>
+<p>Ou seja, não tem motivos para não achar isso incrível &lt;3</p>
+</blockquote>
+<p>Para entender o <a href=https://hyperf.wiki/2.1/#/en/lifecycle>Lifecycle do Hyperf</a>, é muito importante entender o <a href=https://www.swoole.co.uk/docs/modules/swoole-http-server-doc>Lifecycle do Swoole</a>. Como o Swoole é executado via <code>PHP CLI</code>, o Hyperf se inicia também via <code>PHP CLI</code>, utilizando o <a href=https://github.com/symfony/console>symfony/console</a> como <code>command</code>.</p>
+<hr>
+<h2 id=2-instalação>2. Instalação<a href=#2-instalação class=hanchor arialabel=Anchor>&#8983;</a> </h2>
+<p>A maneira mais fácil de iniciar é utilizando Docker, como em tudo rs. Com isso, você não precisa se preocupar com a versão do PHP, da extensão do Swoole na sua máquina, etc.</p>
+<p>Primeiro, crie uma pasta para iniciar o projeto:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>mkdir hyperf-skeleton <span style=color:#f92672>&amp;&amp;</span> cd hyperf-skeleton
+</code></pre></div><p>Inicie o container mapeando o diretório que criamos como um volume para receber o projeto:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>docker run -v <span style=color:#e6db74>${</span>PWD<span style=color:#e6db74>}</span>:/app -p 9501:9501 -it --entrypoint /bin/sh hyperf/hyperf:7.4-alpine-v3.11-swoole
+</code></pre></div><p>Já dentro do container, instale o Hyperf na pasta <code>app</code> que mapeamos anteriormente. O framework é bastante modular, então ele vai perguntar se você quer utilizar algumas coisas, inicialmente, escolha todas as opções padrão que já vai nos atender.</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>composer create-project hyperf/hyperf-skeleton app
+</code></pre></div><p>Caso você queira iniciar esse projeto novamente de maneira mais fácil e já cair na raiz do projeto, crie o arquivo do <code>docker-compose.yaml</code> com o seguinte conteúdo:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-docker data-lang=docker>version: <span style=color:#e6db74>&#39;3.9&#39;</span><span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>services:<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>  hyperf-skeleton:<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>    container_name: hyperf-skeleton<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>    image: hyperf/hyperf:7.4-alpine-v3.11-swoole<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>    working_dir: /app<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>    entrypoint: sh<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>    volumes:<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>      - ./:/app<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>    ports:<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>      - 9501:9501<span style=color:#960050;background-color:#1e0010>
+</span></code></pre></div><p>Sobre o <code>entrypoint</code> ser direto o <code>sh</code> e não o start do projeto, veremos mais tarde o motivo disso. Depois disso, para iniciar o container basta usar o seguinte comando:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>docker compose run --rm --service-ports hyperf-skeleton
+</code></pre></div><p>Agora é só iniciar o webserver:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>php bin/hyperf.php start
+</code></pre></div><p>Sua aplicação está pronta para responder em: <a href=http://0.0.0.0:9501>http://0.0.0.0:9501</a></p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-json data-lang=json>{
+    <span style=color:#f92672>&#34;method&#34;</span>: <span style=color:#e6db74>&#34;GET&#34;</span>,
+    <span style=color:#f92672>&#34;message&#34;</span>: <span style=color:#e6db74>&#34;Hello Hyperf.&#34;</span>
+}
+</code></pre></div><blockquote>
+<p>Mais detalhes na <a href=https://hyperf.wiki/2.1/#/en/quick-start/install>documentação oficial</a></p>
+</blockquote>
+<hr>
+<h2 id=3-hot-reload>3. Hot Reload<a href=#3-hot-reload class=hanchor arialabel=Anchor>&#8983;</a> </h2>
+<p>Como já vimos que o Swoole é executado via <code>PHP CLI</code>, em ambiente de desenvolvimento isso pode ser ruim, pois podemos perder muito tempo parando e iniciando o servidor. Bom, felizmente o Hyperf resolveu isso de forma fácil via o componente <a href=https://hyperf.wiki/2.1/#/en/watcher>Watcher</a>.</p>
+<blockquote>
+<p>Importante: não utilize esse componente em ambiente produtivo, ele é destinado ao ambiente de desenvolvimento!</p>
+</blockquote>
+<p>Primeiro precisamos instalar esse modulo no nosso projeto:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>composer require hyperf/watcher --dev
+</code></pre></div><p>Publicar o arquivo de configurações:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>php bin/hyperf.php vendor:publish hyperf/watcher
+</code></pre></div><p>Um arquivo foi criado em: <code>config/autoload/watcher.php</code>, nele você pode definir as configurações que achar melhor, aqui vamos seguir com as que já estão lá mesmo.</p>
+<p>Agora, para rodar nosso projeto em <strong>ambiente de desenvolvimento</strong>, nosso comando passa a ser:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>php bin/hyperf.php server:watch
+</code></pre></div><p>Assim, sempre que fizermos alguma alteração no projeto, esse componente vai recarregar nosso código automaticamente sem ser preciso reiniciar manualmente.</p>
+<p><img src=images/magic.gif alt=magic.gif></p>
+<hr>
+<h2 id=4-estrutura>4. Estrutura<a href=#4-estrutura class=hanchor arialabel=Anchor>&#8983;</a> </h2>
+<p>A estrutura é bem simples, como comentei é bem similar ao Laravel, então não tem muita complexidade. As principais pastas são:</p>
+<ul>
+<li>Arquivo de start: <code>bin/hyperf.php</code></li>
+<li>Centro de configurações: <code>config/*</code></li>
+<li>Rotas: <code>config/routes.php</code></li>
+<li>Server: <code>config/autoload/server.php</code></li>
+<li>Injeção de dependências: <code>config/autoload/dependencies.php</code></li>
+<li>Design do projeto: <code>config/autoload/devtool.php</code></li>
+<li>Aplicação: <code>app/*</code></li>
+</ul>
+<blockquote>
+<p>Para conhecer mais sobre o centro de configurações, acesse <a href=https://hyperf.wiki/2.1/#/en/config-center>este link</a>.</p>
+</blockquote>
+<p>Eu queria destacar um dos itens acima que achei super interessante, o arquivo <code>devtool.php</code>. Com ele é possível montar todo o design da sua arquitetura da forma que você achar melhor. Ou seja, em um único arquivo você consegue definir sua estrutura de pastas para utilizar <a href=https://pt.stackoverflow.com/questions/19548/o-que-realmente-%C3%A9-ddd-e-quando-ele-se-aplica>DDD</a> com <a href=https://medium.com/luizalabs/descomplicando-a-clean-architecture-cf4dfc4a1ac6>clean architecture</a>, <a href=https://netflixtechblog.com/ready-for-changes-with-hexagonal-architecture-b315ec967749>hexagonal architecture</a>, ou qualquer outra que desejar, te dando muito poder de trabalhar da forma que preferir.</p>
+<hr>
+<h2 id=5-melhorando-o-ambiente>5. Melhorando o ambiente<a href=#5-melhorando-o-ambiente class=hanchor arialabel=Anchor>&#8983;</a> </h2>
+<p>Na próxima seção, vamos iniciar com uma ideia básica de CRUD. Mas antes, vamos fazer uma melhoria no nosso <code>docker-compose.yaml</code> para ajudar no nosso desenvolvimento, adicionando o nosso banco de dados e o Redis (que vamos utilizar mais adiante).</p>
+<p>Atualize o arquivo <code>docker-compose.yaml</code> para:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-docker data-lang=docker>version: <span style=color:#e6db74>&#39;3.9&#39;</span><span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>services:<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>  hyperf-skeleton:<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>    container_name: hyperf-skeleton<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>    image: hyperf/hyperf:7.4-alpine-v3.11-swoole<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>    working_dir: /app<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>    entrypoint: <span style=color:#f92672>[</span><span style=color:#e6db74>&#34;php&#34;</span>, <span style=color:#e6db74>&#34;bin/hyperf.php&#34;</span>, <span style=color:#e6db74>&#34;server:watch&#34;</span><span style=color:#f92672>]</span><span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>    volumes:<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>      - ./:/app<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>    ports:<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>      - 9501:9501<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>    depends_on:<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>      - hyperf-skeleton-mariadb<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>      - hyperf-skeleton-redis<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>  hyperf-skeleton-mariadb:<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>    container_name: hyperf-skeleton-mariadb<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>    image: mariadb:latest<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>    volumes:<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>      - ./.docker/mariadb:/var/lib/mysql<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>    ports:<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>      - 3306:3306<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>    environment:<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>      MYSQL_ROOT_PASSWORD: <span style=color:#e6db74>&#34;secret&#34;</span><span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>      MYSQL_DATABASE: <span style=color:#e6db74>&#34;hyperf-skeleton&#34;</span><span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>  hyperf-skeleton-redis:<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>    container_name: hyperf-skeleton-redis<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>    image: redis:latest<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>    ports:<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span>      - 6379:6379<span style=color:#960050;background-color:#1e0010>
+</span></code></pre></div><p>Agora para iniciar nosso projeto completo basta rodar o seguinte comando:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>docker-compose up -d
+</code></pre></div><p>E claro, para remover tudo:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>docker-compose down
+</code></pre></div><hr>
+<h2 id=6-database>6. Database<a href=#6-database class=hanchor arialabel=Anchor>&#8983;</a> </h2>
+<blockquote>
+<p>Caso queira entender um pouco mais sobre o que vamos utilizar agora no Hyperf, acesse a documentação oficial e veja sobre: <a href=https://hyperf.wiki/2.1/#/en/db/quick-start>Database</a>, <a href=https://hyperf.wiki/2.1/#/en/db/model>Model</a> e <a href=https://hyperf.wiki/2.1/#/en/db/migration>Migration</a>.</p>
+</blockquote>
+<blockquote>
+<p>Dica: evite copiar e colar o código, tente escrever tudo, assim seu aprendizado será muito maior (:</p>
+</blockquote>
+<p>Com nosso banco de dados rodando, vamos criar uma migration para a tabela de usuários:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>docker container exec -it hyperf-skeleton php bin/hyperf.php gen:migration create_users_table
+</code></pre></div><p>Com o nosso arquivo gerado em <code>migrations/*_create_users_table.php</code>, vamos inserir os campos básicos para serem criados:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-php data-lang=php><span style=color:#a6e22e>Schema</span><span style=color:#f92672>::</span><span style=color:#a6e22e>create</span>(<span style=color:#e6db74>&#39;users&#39;</span>, <span style=color:#66d9ef>function</span> (<span style=color:#a6e22e>Blueprint</span> $table) {
+    $table<span style=color:#f92672>-&gt;</span><span style=color:#a6e22e>uuid</span>(<span style=color:#e6db74>&#39;id&#39;</span>)<span style=color:#f92672>-&gt;</span><span style=color:#a6e22e>primary</span>();
+    $table<span style=color:#f92672>-&gt;</span><span style=color:#a6e22e>string</span>(<span style=color:#e6db74>&#39;name&#39;</span>);
+    $table<span style=color:#f92672>-&gt;</span><span style=color:#a6e22e>string</span>(<span style=color:#e6db74>&#39;email&#39;</span>);
+    $table<span style=color:#f92672>-&gt;</span><span style=color:#a6e22e>timestamps</span>();
+});
+</code></pre></div><blockquote>
+<p>Sim, vamos usar <code>uuid</code> como chave primaria, espero que em todos os seus projetos você também esteja usando 👀, se ainda não estiver, da uma olhada <a href=https://mareks-082.medium.com/auto-increment-keys-vs-uuid-a74d81f7476a>aqui</a>.</p>
+</blockquote>
+<p>O próximo passo é criar o nosso modelo, então na pasta <code>App/Model</code> vamos criar o nosso <code>User</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-php data-lang=php><span style=color:#f92672>&lt;?</span><span style=color:#a6e22e>php</span> <span style=color:#66d9ef>declare</span>(<span style=color:#a6e22e>strict_types</span><span style=color:#f92672>=</span><span style=color:#ae81ff>1</span>);
+
+<span style=color:#66d9ef>namespace</span> <span style=color:#a6e22e>App\Model</span>;
+
+<span style=color:#66d9ef>use</span> <span style=color:#a6e22e>Hyperf\DbConnection\Model\Model</span>;
+
+<span style=color:#e6db74>/**
+</span><span style=color:#e6db74> * @property $id
+</span><span style=color:#e6db74> * @property $name
+</span><span style=color:#e6db74> * @property $email
+</span><span style=color:#e6db74> * @property $created_at
+</span><span style=color:#e6db74> * @property $updated_at
+</span><span style=color:#e6db74> */</span>
+<span style=color:#66d9ef>class</span> <span style=color:#a6e22e>User</span> <span style=color:#66d9ef>extends</span> <span style=color:#a6e22e>Model</span>
+{
+    <span style=color:#e6db74>/**
+</span><span style=color:#e6db74>     * @var string
+</span><span style=color:#e6db74>     */</span>
+    <span style=color:#66d9ef>public</span> $keyType <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;string&#39;</span>;
+
+    <span style=color:#e6db74>/**
+</span><span style=color:#e6db74>     * @var bool
+</span><span style=color:#e6db74>     */</span>
+    <span style=color:#66d9ef>public</span> $incrementing <span style=color:#f92672>=</span> <span style=color:#66d9ef>false</span>;
+
+    <span style=color:#e6db74>/**
+</span><span style=color:#e6db74>     * The attributes that are mass assignable.
+</span><span style=color:#e6db74>     *
+</span><span style=color:#e6db74>     * @var array
+</span><span style=color:#e6db74>     */</span>
+    <span style=color:#66d9ef>protected</span> $fillable <span style=color:#f92672>=</span> [<span style=color:#e6db74>&#39;id&#39;</span>, <span style=color:#e6db74>&#39;name&#39;</span>, <span style=color:#e6db74>&#39;email&#39;</span>, <span style=color:#e6db74>&#39;created_at&#39;</span>, <span style=color:#e6db74>&#39;updated_at&#39;</span>];
+}
+</code></pre></div><p>Antes de rodar a nossa migration, normalmente é preciso verificar se os parâmetros de conexão do banco estão devidamente configurados. Porém, no nosso caso vamos manter tudo como está, mas vale a pena dar uma olhada no conteúdo do arquivo, ele fica em <code>config/autoload/databases.php</code>.</p>
+<p>O que vamos precisar fazer é trocar as <code>envs</code> no arquivo <code>.env</code> para realizar a conexão ao nosso container. Só vamos precisar alterar as seguintes <code>envs</code>:</p>
+<pre><code>DB_HOST=hyperf-skeleton-mariadb
+DB_DATABASE=hyperf-skeleton
+DB_USERNAME=root
+DB_PASSWORD=secret
+</code></pre><p>Agora é só rodar a migration no container da aplicação:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>docker container exec -it hyperf-skeleton php bin/hyperf.php migrate
+</code></pre></div><p>Resultado de sucesso:</p>
+<pre><code>[INFO] Migration table created successfully.
+Migrating: *_create_users_table
+Migrated:  *_create_users_table
+</code></pre><blockquote>
+<p>Importante, o hot reload não funciona para recarregar variaveis de ambiente, então é preciso dar um restart manual no container.</p>
+</blockquote>
+<hr>
+<h2 id=7-rotas-e-controllers>7. Rotas e Controllers<a href=#7-rotas-e-controllers class=hanchor arialabel=Anchor>&#8983;</a> </h2>
+<blockquote>
+<p>Caso queira entender um pouco mais sobre o que vamos utilizar agora no Hyperf, acesse a documentação oficial e veja sobre: <a href=https://hyperf.wiki/2.1/#/en/controller>Controller</a> e <a href=https://hyperf.wiki/2.1/#/en/router>Router</a>.</p>
+</blockquote>
+<p>Agora vamos criar o nosso <code>UserController</code>, na pasta <code>app/Controller</code> inicialmente vazio:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-php data-lang=php><span style=color:#f92672>&lt;?</span><span style=color:#a6e22e>php</span> <span style=color:#66d9ef>declare</span>(<span style=color:#a6e22e>strict_types</span><span style=color:#f92672>=</span><span style=color:#ae81ff>1</span>);
+
+<span style=color:#66d9ef>namespace</span> <span style=color:#a6e22e>App\Controller</span>;
+
+<span style=color:#66d9ef>class</span> <span style=color:#a6e22e>UserController</span> <span style=color:#66d9ef>extends</span> <span style=color:#a6e22e>AbstractController</span>
+{
+
+}
+</code></pre></div><p>Depois, precisamos definir nossas rotas. Então faremos algo assim:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-php data-lang=php><span style=color:#66d9ef>use</span> <span style=color:#a6e22e>App\Controller\UserController</span>;
+
+<span style=color:#a6e22e>Router</span><span style=color:#f92672>::</span><span style=color:#a6e22e>addGroup</span>(<span style=color:#e6db74>&#39;/users&#39;</span>, <span style=color:#66d9ef>function</span> () {
+    <span style=color:#a6e22e>Router</span><span style=color:#f92672>::</span><span style=color:#a6e22e>get</span>(<span style=color:#e6db74>&#39;&#39;</span>, [<span style=color:#a6e22e>UserController</span><span style=color:#f92672>::</span><span style=color:#a6e22e>class</span>, <span style=color:#e6db74>&#39;index&#39;</span>]);
+    <span style=color:#a6e22e>Router</span><span style=color:#f92672>::</span><span style=color:#a6e22e>get</span>(<span style=color:#e6db74>&#39;/{id}&#39;</span>, [<span style=color:#a6e22e>UserController</span><span style=color:#f92672>::</span><span style=color:#a6e22e>class</span>, <span style=color:#e6db74>&#39;show&#39;</span>]);
+    <span style=color:#a6e22e>Router</span><span style=color:#f92672>::</span><span style=color:#a6e22e>post</span>(<span style=color:#e6db74>&#39;&#39;</span>, [<span style=color:#a6e22e>UserController</span><span style=color:#f92672>::</span><span style=color:#a6e22e>class</span>, <span style=color:#e6db74>&#39;store&#39;</span>]);
+    <span style=color:#a6e22e>Router</span><span style=color:#f92672>::</span><span style=color:#a6e22e>delete</span>(<span style=color:#e6db74>&#39;/{id}&#39;</span>, [<span style=color:#a6e22e>UserController</span><span style=color:#f92672>::</span><span style=color:#a6e22e>class</span>, <span style=color:#e6db74>&#39;delete&#39;</span>]);
+});
+</code></pre></div><p>Voltando para o nosso <code>Controller</code>, vamos criar os métodos conforme nossas rotas já utilizando a classe <code>User</code> e fazendo as devidas operações com o ORM:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-php data-lang=php><span style=color:#f92672>&lt;?</span><span style=color:#a6e22e>php</span> <span style=color:#66d9ef>declare</span>(<span style=color:#a6e22e>strict_types</span><span style=color:#f92672>=</span><span style=color:#ae81ff>1</span>);
+
+<span style=color:#66d9ef>namespace</span> <span style=color:#a6e22e>App\Controller</span>;
+
+<span style=color:#66d9ef>use</span> <span style=color:#a6e22e>App\Model\User</span>;
+<span style=color:#66d9ef>use</span> <span style=color:#a6e22e>Hyperf\HttpServer\Contract\RequestInterface</span>;
+
+<span style=color:#66d9ef>class</span> <span style=color:#a6e22e>UserController</span> <span style=color:#66d9ef>extends</span> <span style=color:#a6e22e>AbstractController</span>
+{
+    <span style=color:#66d9ef>public</span> <span style=color:#66d9ef>function</span> <span style=color:#a6e22e>index</span>(<span style=color:#a6e22e>RequestInterface</span> $request)
+    {
+        <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>User</span><span style=color:#f92672>::</span><span style=color:#a6e22e>get</span>();
+    }
+
+    <span style=color:#66d9ef>public</span> <span style=color:#66d9ef>function</span> <span style=color:#a6e22e>show</span>(<span style=color:#a6e22e>string</span> $id)
+    {
+        <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>User</span><span style=color:#f92672>::</span><span style=color:#a6e22e>find</span>($id);
+    }
+
+    <span style=color:#66d9ef>public</span> <span style=color:#66d9ef>function</span> <span style=color:#a6e22e>store</span>(<span style=color:#a6e22e>RequestInterface</span> $request)
+    {
+        <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>User</span><span style=color:#f92672>::</span><span style=color:#a6e22e>create</span>($request<span style=color:#f92672>-&gt;</span><span style=color:#a6e22e>all</span>());
+    }
+
+    <span style=color:#66d9ef>public</span> <span style=color:#66d9ef>function</span> <span style=color:#a6e22e>delete</span>(<span style=color:#a6e22e>string</span> $id)
+    {
+        <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>User</span><span style=color:#f92672>::</span><span style=color:#a6e22e>destroy</span>($id);
+    }
+}
+</code></pre></div><p>Essa é uma estrutura extremamente básica, e com alguns problemas&mldr; Contudo, a ideia não é ensinar tudo aqui, e sim te direcionar para explorar e construir coisas interessantes. Para isso, vou deixar alguns links aqui para você melhorar este código:</p>
+<ul>
+<li><a href=https://hyperf.wiki/2.1/#/en/db/paginator>Paginator</a></li>
+<li><a href=https://hyperf.wiki/2.1/#/en/validation>Validation</a></li>
+<li><a href=https://hyperf.wiki/2.1/#/en/cache>Cache</a></li>
+<li><a href=https://hyperf.wiki/2.1/#/en/response>Response</a></li>
+<li><a href=https://hyperf.wiki/2.1/#/en/event>Event Dispatcher</a></li>
+</ul>
+<p>Todos os itens acima têm uma boa documentação e com bons exemplos. Você consegue implementar tudo isso nesse simples CRUD para exercitar os recursos do Hyperf.</p>
+<p>Ainda tenho uma ideia bônus: crie uma interface e uma implementação para a Repository Pattern refatorando este código e injete via <a href=https://hyperf.wiki/2.1/#/en/di>Dependency Injection</a>, tenho certeza que será bacana entender este fluxo.</p>
+<p>E claro, não esqueça de criar testes. O Hyperf criou o <code>co-phpunit</code>, que é basicamente o <code>phpunit</code> com corrotinas. Maneiro de mais né? Para conhecer mais acesse a <a href=https://hyperf.wiki/2.1/#/en/testing>documentação</a>.</p>
+<hr>
+<h2 id=8-parallel>8. Parallel<a href=#8-parallel class=hanchor arialabel=Anchor>&#8983;</a> </h2>
+<p>Outra coisa que achei muito bacana, foi a implementação que o Hyperf fez do gerenciamento via channels de corrotinas usando wait groups e handle de exceptions. Basicamente ele encapsulou toda essa implementação na classe <code>Hyperf\Utils\Parallel</code>.</p>
+<p>Usando o exemplo do que fizemos acima, para criar vários usuários em paralelo e só continuar depois que todos finalizarem, podemos fazer assim no nosso <code>UserController@store</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-php data-lang=php><span style=color:#66d9ef>public</span> <span style=color:#66d9ef>function</span> <span style=color:#a6e22e>store</span>(<span style=color:#a6e22e>RequestInterface</span> $request)
+{
+    $parallel <span style=color:#f92672>=</span> <span style=color:#66d9ef>new</span> <span style=color:#a6e22e>Parallel</span>();
+
+    <span style=color:#66d9ef>foreach</span> ($request<span style=color:#f92672>-&gt;</span><span style=color:#a6e22e>input</span>(<span style=color:#e6db74>&#39;users&#39;</span>) <span style=color:#66d9ef>as</span> $user) {
+        $parallel<span style=color:#f92672>-&gt;</span><span style=color:#a6e22e>add</span>(
+            <span style=color:#66d9ef>function</span> () <span style=color:#66d9ef>use</span> ($user) {
+                <span style=color:#a6e22e>User</span><span style=color:#f92672>::</span><span style=color:#a6e22e>create</span>($user);
+            },
+            $user[<span style=color:#e6db74>&#39;id&#39;</span>]
+        );
+    }
+
+    <span style=color:#66d9ef>return</span> $parallel<span style=color:#f92672>-&gt;</span><span style=color:#a6e22e>wait</span>();
+}
+</code></pre></div><blockquote>
+<p>Claro que não fariamos esta implementação no mundo real, é apenas um exemplo rsrs.</p>
+</blockquote>
+<p>É importante destacar que ao disparar uma corrotina, tudo que for utilizado de I/O dentro do seu contexto precisa ser compatível com corrotinas, caso contrário seu código será bloqueante.</p>
+<p>Todos os componentes do Hyperf já são compatíveis, então você pode utilizar sem problemas, tenha atenção apenas com bibliotecas como a do <code>mongodb</code>, que, até o momento não tem suporte dos <a href=https://www.swoole.co.uk/docs/modules/swoole-runtime-flags>Hooks do Swoole</a>.</p>
+<hr>
+<h2 id=9-benchmark>9. Benchmark<a href=#9-benchmark class=hanchor arialabel=Anchor>&#8983;</a> </h2>
+<p>Falamos muito sobre performance, diferenças entre o Swoole e o &ldquo;PHP Tradicional&rdquo;, mas agora vamos aos números!</p>
+<p>Realizei um teste na minha própria máquina, então os resultados podem ser diferentes de um servidor em produção ou da sua máquina. Não vamos focar nos números absolutos, vamos focar nas referências entre um e outro, pois mesmo mudando de ambiente, provavelmente serão mantidas similares.</p>
+<blockquote>
+<p>Para realizar os testes utilizei o <a href=https://github.com/wg/wrk>wrk</a> na rota de retorno base dos frameworks.</p>
+</blockquote>
+<p><strong>Laravel 8 com PHP 7.4 (93 rq/s)</strong></p>
+<pre><code>Running 10s test @ http://0.0.0.0:8000
+  12 threads and 400 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency   550.01ms  335.24ms   1.12s    63.01%
+    Req/Sec    12.38      8.80    70.00     84.72%
+  938 requests in 10.10s, 16.64MB read
+  Socket errors: connect 155, read 1214, write 12, timeout 0
+Requests/sec:     92.83
+Transfer/sec:      1.65MB
+</code></pre><p><strong>Lumen 8 com PHP 7.4 (279 rq/s)</strong></p>
+<pre><code>Running 10s test @ http://0.0.0.0:8000
+  12 threads and 400 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency   108.93ms   41.13ms 193.70ms   76.31%
+    Req/Sec    73.96     40.36   184.00     69.49%
+  2820 requests in 10.10s, 751.82KB read
+  Socket errors: connect 157, read 3987, write 4, timeout 0
+Requests/sec:    279.10
+Transfer/sec:     74.41KB
+</code></pre><p><strong>Laravel Octane com PHP 8.0 e Swoole (1.273 rq/s)</strong></p>
+<pre><code>Running 10s test @ http://0.0.0.0:8000
+  12 threads and 400 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency   110.06ms  190.13ms   1.65s    84.78%
+    Req/Sec   118.57     96.64   550.00     69.97%
+  12796 requests in 10.05s, 13.09MB read
+  Socket errors: connect 157, read 101, write 4, timeout 0
+Requests/sec:   1273.75
+Transfer/sec:      1.30MB
+</code></pre><p><strong>Hyperf 2.1 com PHP 7.4 (90.799 rq/s)</strong></p>
+<pre><code>Running 10s test @ http://0.0.0.0:9502
+  12 threads and 400 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency   628.86us    2.28ms 127.72ms   97.39%
+    Req/Sec    20.96k    12.14k   62.60k    69.07%
+  914415 requests in 10.07s, 165.69MB read
+  Socket errors: connect 155, read 84, write 0, timeout 2
+Requests/sec:  90799.66
+Transfer/sec:     16.45MB
+</code></pre><p><strong>Swoole puro com PHP 8.0 (159.581 rq/s)</strong></p>
+<pre><code>Running 10s test @ http://0.0.0.0:9501
+  12 threads and 400 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     1.47ms  431.57us  29.87ms   97.10%
+    Req/Sec    13.37k     5.49k   25.36k    59.74%
+  1612224 requests in 10.10s, 267.53MB read
+  Socket errors: connect 157, read 107, write 0, timeout 0
+Requests/sec: 159581.95
+Transfer/sec:     26.48MB
+</code></pre><p>Comparações usando o mais lento como referência:</p>
+<table>
+<thead>
+<tr>
+<th>Framework</th>
+<th>rq/s</th>
+<th>ref.</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Laravel</td>
+<td>92</td>
+<td>x1</td>
+</tr>
+<tr>
+<td>Lumen</td>
+<td>279</td>
+<td>+3x</td>
+</tr>
+<tr>
+<td>Laravel Octane</td>
+<td>1.273</td>
+<td>+13x</td>
+</tr>
+<tr>
+<td>Hyperf</td>
+<td>90.799</td>
+<td>+986x</td>
+</tr>
+<tr>
+<td>Swoole puro</td>
+<td>159.581</td>
+<td>+1.734x</td>
+</tr>
+</tbody>
+</table>
+<p>Ou seja, o Hyperf é mais de 986 vezes mais rápido do que o Laravel e o Swoole puro 1.734, isso sem considerar a latência, que também teve uma diferença enorme. Incrível né? Claro, este é um benchmark realizado localmente em uma rota extremamente simples, mas a diferença realmente é insana, mesmo em outros ambientes.</p>
+<hr>
+<p>O resultado deste projeto está no meu github:</p>
+<p><a href=https://github.com/leocarmo/hyperf-skeleton>https://github.com/leocarmo/hyperf-skeleton</a></p>
+<p>Bom, acredito que passamos pelo básico do Hyperf, agora você já consegue explorar tudo que ele pode fornecer com este ambiente que iniciamos.</p>
+<p>Pretendo escrever novos artigos aprofundando mais em assuntos específicos, principalmente sobre os diversos clients que ele implementa e sobre as <a href=https://hyperf.wiki/2.1/#/en/pool>connections pools</a>.</p>
+<p>Espero que você tenha gostado e que esse guia possa ter te ajudado. Apesar de algumas partes da documentação ainda não ter sido traduzida, ela é bem completa de exemplos, então da para implementar praticamente tudo que está disponível.</p>
+<p>E aí, já conhecia o Hyperf? Me conta o que achou dele nos comentários. (:</p>
+<hr>
+<blockquote>
+<p>Agradecimento especial ao <a href=https://www.linkedin.com/in/ronieneubauer/>@ronieneubauer</a> pela revisão.</p>
+</blockquote>
+</div></div>
+<div class=pagination>
+<div class=pagination__title>
+<span class=pagination__title-h>Read other posts</span>
+<hr>
+</div>
+<div class=pagination__buttons>
+<span class="button previous">
+<a href=/ambiente-de-desenvolvimento-das-galaxias-usando-docker/>
+<span class=button__icon>←</span>
+<span class=button__text>Ambiente de desenvolvimento das galáxias usando Docker</span>
+</a>
+</span>
+<span class="button next">
+<a href=/graceful-shutdown-com-php-evitando-data-corruption/>
+<span class=button__text>Graceful Shutdown com PHP - Evitando data corruption</span>
+<span class=button__icon>→</span>
+</a>
+</span>
+</div>
+</div>
+</div>
+</div>
+<footer class=footer>
+<div class=footer__inner>
+<div class="copyright copyright--user">
+<span>leocarmo.dev</span>
+<span>:: Theme made by <a href=https://twitter.com/panr>panr</a></span>
+</div>
+</div>
+</footer>
+<script src=/assets/main.js></script>
+<script src=/assets/prism.js></script>
+<script>window.onload=function(){let a=document.getElementsByTagName('a'),b=window.location.hostname;for(let c=0;c<a.length;c++){if(a[c].href.includes(b))continue;a[c].setAttribute('target','_blank')}}</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-WG95JRMMET"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date),gtag('config','G-WG95JRMMET')</script>
+</div>
+</body>
+</html>

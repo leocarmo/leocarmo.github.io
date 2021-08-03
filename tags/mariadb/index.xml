@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>mariadb on leocarmo.dev</title><link>/tags/mariadb/</link><description>Recent content in mariadb on leocarmo.dev</description><generator>Hugo -- gohugo.io</generator><language>en</language><copyright>leocarmo.dev</copyright><lastBuildDate>Tue, 03 Aug 2021 10:00:00 -0300</lastBuildDate><atom:link href="/tags/mariadb/index.xml" rel="self" type="application/rss+xml"/><item><title>Ambiente de desenvolvimento das galáxias usando Docker</title><link>/ambiente-de-desenvolvimento-das-galaxias-usando-docker/</link><pubDate>Tue, 03 Aug 2021 10:00:00 -0300</pubDate><guid>/ambiente-de-desenvolvimento-das-galaxias-usando-docker/</guid><description>Criar um ambiente de desenvolvimento local pode parecer um desafio. Quem nunca sofreu ~ pelo menos um pouco ~ para conseguir ter as dependências rodando na sua maquina para criar um projeto?
+Pois é, normalmente passamos por isso quase sempre. Antes de conhecer o Docker, isso era muito mais difícil&amp;hellip; Ter que subir um banco de dados localmente sempre dava algum tipo de dor de cabeça, ainda mais quando era preciso ter uma versão específica por conta de algum projeto já existente que precisava de manutenção.</description><content>&lt;p>Criar um ambiente de desenvolvimento local pode parecer um desafio. Quem nunca sofreu &lt;em>~ pelo menos um pouco ~&lt;/em> para conseguir ter as dependências rodando na sua maquina para criar um projeto?&lt;/p>
+&lt;p>Pois é, normalmente passamos por isso quase sempre. Antes de conhecer o &lt;a href="https://www.docker.com/">Docker&lt;/a>, isso era muito mais difícil&amp;hellip; Ter que subir um banco de dados localmente sempre dava algum tipo de dor de cabeça, ainda mais quando era preciso ter uma versão específica por conta de algum projeto já existente que precisava de manutenção.&lt;/p>
+&lt;p>A ideia é te ajudar a montar um ambiente de desenvolvimento local de forma fácil e rápida usando tudo com Docker. Além disso, vou te mostrar algumas ferramentas de apoio que podem ajudar muito na hora de debugar algumas coisas.&lt;/p>
+&lt;p>É importante que você tenha pelo menos uma base sobre Docker e &lt;a href="https://docs.docker.com/compose/">Docker Compose&lt;/a> e claro, tenha ele &lt;a href="https://www.docker.com/products/docker-desktop">instalado&lt;/a> na sua máquina.&lt;/p>
+&lt;p>Para facilitar, sugiro que você clone o projeto que deixei preparado para este artigo com todos os arquivos prontos:&lt;/p>
+&lt;p>&lt;a href="https://github.com/leocarmo/docker-local-stack">https://github.com/leocarmo/docker-local-stack&lt;/a>&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">git clone git@github.com:leocarmo/docker-local-stack.git
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Antes de iniciar as ferramentas, criaremos uma &lt;a href="https://docs.docker.com/network/">rede para nossos containers&lt;/a>, pois teremos vários arquivos diferentes para nossas stacks, assim você pode escolher de forma mais fácil qual utilizar e quando.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker network create global-default
+&lt;/code>&lt;/pre>&lt;/div>&lt;hr>
+&lt;p>Tópicos:&lt;/p>
+&lt;ol>
+&lt;li>&lt;a href="#1-visibilidade-de-containers">Visibilidade de containers&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#2-redis">Redis&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#3-kafka">Kafka&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#4-mongodb">MongoDB&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#5-elasticsearch">ElasticSearch&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#6-databases">Databases&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#7-mock">Mock&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#8-aws">AWS&lt;/a>&lt;/li>
+&lt;/ol>
+&lt;hr>
+&lt;h2 id="1-visibilidade-de-containers">1. Visibilidade de containers&lt;/h2>
+&lt;p>A primeira ferramenta que gosto de usa é o &lt;a href="https://dockstation.io/">DockStation&lt;/a>, infelizmente ele precisa ser instalado na sua máquina, prometo que será o único.&lt;/p>
+&lt;p>Ele tem uma infinidade de ferramentas para te ajudar a gerenciar melhor seus containers, o que precisaremos em breve, e uma interface bem amigável.&lt;/p>
+&lt;p>Aqui tem um preview dele:&lt;/p>
+&lt;p>&lt;img src="https://cdn.hashnode.com/res/hashnode/image/upload/v1626463235111/WL8MPPAnBw.png" alt="DockStation">&lt;/p>
+&lt;p>De qualquer forma, caso você não queira instalar nada na sua máquina, existe uma alternativa que é o &lt;a href="https://www.portainer.io/">Portainer&lt;/a>, ele pode ser iniciado via container, e também tem diversas ferramentas disponíveis para te ajudar.&lt;/p>
+&lt;p>&lt;img src="https://cdn.hashnode.com/res/hashnode/image/upload/v1626464059771/lyRrNLO6X.png" alt="Portainer">&lt;/p>
+&lt;p>O exemplo para rodar via &lt;code>compose&lt;/code> está &lt;a href="https://github.com/leocarmo/docker-local-stack/blob/main/container-visibility/docker-compose-portainer.yaml">aqui&lt;/a>.&lt;/p>
+&lt;p>Para iniciar o Portainer:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker compose -f container-visibility/docker-compose-portainer.yaml up -d
+&lt;/code>&lt;/pre>&lt;/div>&lt;hr>
+&lt;h2 id="2-redis">2. Redis&lt;/h2>
+&lt;p>Falando sobre &lt;a href="https://redis.io/">Redis&lt;/a>, normalmente usamos ele de duas formas: single node ou cluster. Ainda temos outra ferramenta que traz uma visibilidade incrível, evitando que seja preciso criar código para debugar chaves, consumo de recursos e ainda consegue sugerir melhorias nas buscas, por exemplo. Falaremos dela em breve.&lt;/p>
+&lt;p>Começando pelo Redis single node, &lt;a href="https://github.com/leocarmo/docker-local-stack/blob/main/redis/docker-compose-single.yaml">esse aqui&lt;/a> é um exemplo do &lt;code>compose&lt;/code>. Para iniciar:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker compose -f redis/docker-compose-single.yaml up -d
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Sim, bem simples. Agora montaremos um cluster. Para isso, utilizaremos as imagens da &lt;a href="https://bitnami.com/">Bitnami&lt;/a>, eles possuem diversas outras ferramentas já prontas para utilizar também, vale a pena dar uma olhada.&lt;/p>
+&lt;blockquote>
+&lt;p>Vale pontuar que não é uma imagem oficial do Redis como a do single node. É possível criar um cluster utilizando a imagem oficial, mas nosso foco aqui é para desenvolvimento local, então utilizaremos o que é mais fácil e rápido para ter rodando.&lt;/p>
+&lt;/blockquote>
+&lt;p>O repositório com o &lt;code>docker-compose&lt;/code> original da Bitnami está no &lt;a href="https://github.com/bitnami/bitnami-docker-redis-cluster">github&lt;/a> deles, porém, realizei algumas pequenas modificações para que ele possa ter contato com todos os outros containers que utilizaremos aqui.&lt;/p>
+&lt;p>O &lt;code>compose&lt;/code> do Redis cluster com algumas pequenas mudanças que fiz está &lt;a href="https://github.com/leocarmo/docker-local-stack/blob/main/redis/docker-compose-cluster.yaml">aqui&lt;/a>. Para iniciar:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker compose -f redis/docker-compose-cluster.yaml up -d
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Ótimo, agora temos um single node e um cluster de Redis funcionando!&lt;/p>
+&lt;p>Vou te mostrar uma ferramenta que gosto muito, o &lt;a href="https://redislabs.com/redis-enterprise/redis-insight/">RedisInsight&lt;/a>, que é uma GUI para interagir com o Redis (por isso modifiquei tudo para ficar na &lt;code>network global-default&lt;/code>).&lt;/p>
+&lt;p>&lt;img src="https://cdn.hashnode.com/res/hashnode/image/upload/v1626467588436/4D_s2nTu-.png" alt="RedisInsight">&lt;/p>
+&lt;p>Então nosso &lt;code>compose&lt;/code> do RedisInsight fica &lt;a href="https://github.com/leocarmo/docker-local-stack/blob/main/redis/docker-compose-insight.yaml">assim&lt;/a>. Para iniciar:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker compose -f redis/docker-compose-insight.yaml up -d
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Para conectar o RedisInsight ao nosso cluster ou ao single node é bem simples, ele fica neste endereço: &lt;a href="http://0.0.0.0:8001/">http://0.0.0.0:8001/&lt;/a>. Depois, basta selecionar que você já possui um database e colocar as informações para conectar. Um exemplo para conectar no cluster:&lt;/p>
+&lt;p>&lt;img src="https://cdn.hashnode.com/res/hashnode/image/upload/v1626467726998/oKqgGWqRTc.png" alt="image.png">&lt;/p>
+&lt;blockquote>
+&lt;p>Não esqueça da senha: &lt;em>redis&lt;/em>&lt;/p>
+&lt;/blockquote>
+&lt;hr>
+&lt;h2 id="3-kafka">3. Kafka&lt;/h2>
+&lt;p>Para ter um cluster de &lt;a href="https://www.confluent.io/what-is-apache-kafka/">Apache Kafka&lt;/a> rodando, precisamos do &lt;a href="https://zookeeper.apache.org/">ZooKeeper&lt;/a>. É bem simples também, &lt;a href="https://github.com/leocarmo/docker-local-stack/blob/main/kafka/docker-compose-cluster.yaml">aqui&lt;/a> tem o &lt;code>compose&lt;/code> com tudo isso, sendo um cluster de Kafka com 3 brokers. Para rodar:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker compose -f kafka/docker-compose-cluster.yaml up -d
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>O destaque aqui vai para a ferramenta &lt;a href="https://github.com/cloudhut/kowl">Kowl&lt;/a>, que é uma UI para o Kafka, gostei bastante dela comparada a outras.&lt;/p>
+&lt;p>&lt;img src="https://github.com/cloudhut/kowl/raw/master/docs/assets/preview.gif" alt="Kowl Kafka">&lt;/p>
+&lt;p>O Kowl ficará disponível em &lt;a href="http://0.0.0.0:8080/">http://0.0.0.0:8080/&lt;/a>.&lt;/p>
+&lt;p>Ele tem a versão open-source, mas também tem uma versão Business, enquanto ela está na versão beta, você pode conseguir uma licença limitada, porém gratuita e eterna &lt;a href="https://license.cloudhut.dev/">aqui&lt;/a>.&lt;/p>
+&lt;blockquote>
+&lt;p>Até o dia de hoje, ainda está liberado, então aproveita!&lt;/p>
+&lt;/blockquote>
+&lt;hr>
+&lt;h2 id="4-mongodb">4. MongoDB&lt;/h2>
+&lt;p>Para o Mongo, foi bem simples montar algo que já resolva localmente nossa necessidade. Coloquei também o &lt;a href="https://github.com/mongo-express/mongo-express">mongo-express&lt;/a> no &lt;code>compose&lt;/code> para ajudar no debug.&lt;/p>
+&lt;p>&lt;img src="https://cdn.hashnode.com/res/hashnode/image/upload/v1626477968205/cU65kS0bc.png" alt="mongo-express">&lt;/p>
+&lt;p>O &lt;code>compose&lt;/code> final está &lt;a href="https://github.com/leocarmo/docker-local-stack/blob/main/mongodb/docker-compose-single.yaml">aqui&lt;/a>. Caso queira ver mais parâmetros disponíveis na imagem oficial, você pode acessar &lt;a href="https://hub.docker.com/_/mongo">aqui&lt;/a>. Para rodar:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker compose -f mongodb/docker-compose-single.yaml up -d
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>O mongo-express ficará disponível em &lt;a href="http://0.0.0.0:8081/">http://0.0.0.0:8081/&lt;/a>.&lt;/p>
+&lt;p>Caso você precise de algo mais robusto, a Bitnami também tem um &lt;code>compose&lt;/code> pronto com múltiplos shards, vale a pena conferir &lt;a href="https://github.com/bitnami/bitnami-docker-mongodb-sharded/blob/master/docker-compose-multiple-shards.yml">aqui&lt;/a>.&lt;/p>
+&lt;hr>
+&lt;h2 id="5-elasticsearch">5. ElasticSearch&lt;/h2>
+&lt;p>Este também foi fácil, a própria &lt;a href="https://www.elastic.co/guide/en/elastic-stack-get-started/current/get-started-docker.html">documentação oficial&lt;/a> disponibiliza um &lt;code>compose&lt;/code> praticamente pronto, eu apenas reduzi um node, acredito que dois já são suficientes para desenvolvimento local, o link está &lt;a href="https://github.com/leocarmo/docker-local-stack/blob/main/elasticsearch/docker-compose-cluster.yaml">aqui&lt;/a>. Para rodar:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker compose -f elasticsearch/docker-compose-cluster.yaml up -d
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>O ElasticSearch ficará disponível em &lt;a href="http://0.0.0.0:9200/">http://0.0.0.0:9200/&lt;/a> e o Kibana em &lt;a href="http://0.0.0.0:5601/">http://0.0.0.0:5601/&lt;/a>.&lt;/p>
+&lt;p>O destaque aqui vai para o &lt;a href="https://github.com/lmenezes/cerebro">Cerebro&lt;/a>, uma UI que ajuda bastante na hora de entender como está a distribuição dos shards, consumo de recurso, entre outras informações importantes do cluster.&lt;/p>
+&lt;p>&lt;img src="https://cdn.hashnode.com/res/hashnode/image/upload/v1626479198955/m7NkaWdQr.png" alt="Cerebro">&lt;/p>
+&lt;p>O &lt;code>compose&lt;/code> do Cerebro está &lt;a href="https://github.com/leocarmo/docker-local-stack/blob/main/elasticsearch/docker-compose-cerebro.yaml">aqui&lt;/a> e ficará disponível em &lt;a href="http://0.0.0.0:9000/">http://0.0.0.0:9000/&lt;/a>. Para rodar:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker compose -f elasticsearch/docker-compose-cerebro.yaml up -d
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Para começar usar é simples, basta colocar o endereço do ElasticSearch, no nosso caso o nome do container e a porta: &lt;code>http://es01:9200&lt;/code>.&lt;/p>
+&lt;hr>
+&lt;h2 id="6-databases">6. Databases&lt;/h2>
+&lt;p>Nesta seção, deixei os principais bancos preparados: &lt;a href="https://hub.docker.com/_/mariadb">MariaDB&lt;/a>, &lt;a href="https://hub.docker.com/_/mysql">MySQL&lt;/a> e o &lt;a href="https://hub.docker.com/_/postgres">Postgres&lt;/a> com &lt;a href="https://www.pgadmin.org/">pgAdmin4&lt;/a>.&lt;/p>
+&lt;p>Também são bem simples, o &lt;code>compose&lt;/code> do MariaDB está &lt;a href="https://github.com/leocarmo/docker-local-stack/blob/main/databases/docker-compose-mariadb.yaml">aqui&lt;/a>, do MySQL &lt;a href="https://github.com/leocarmo/docker-local-stack/blob/main/databases/docker-compose-mysql.yaml">aqui&lt;/a> e do Postgres &lt;a href="https://github.com/leocarmo/docker-local-stack/blob/main/databases/docker-compose-postgres.yaml">aqui&lt;/a>. Para rodar cada um:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker compose -f databases/docker-compose-mariadb.yaml up -d
+docker compose -f databases/docker-compose-mysql.yaml up -d
+docker compose -f databases/docker-compose-postgres.yaml up -d
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Ao subir os containers, os volumes serão criados em &lt;code>databases/var&lt;/code>, no mesmo diretório dos arquivos do &lt;code>compose&lt;/code>.&lt;/p>
+&lt;p>Para gerenciar o Postgres, o pgAdmin estará disponível em &lt;a href="http://0.0.0.0:5050/">http://0.0.0.0:5050/&lt;/a>:&lt;/p>
+&lt;p>&lt;img src="https://cdn.hashnode.com/res/hashnode/image/upload/v1626483179054/OYLK7Q5QT.png" alt="pgAdmin">&lt;/p>
+&lt;p>Para gerenciar o MariaDB e MySQL, sugiro utilizar o &lt;a href="https://dev.mysql.com/downloads/workbench/">MySQL Workbench&lt;/a>, que infelizmente não tem sua versão em container&amp;hellip; Mas vale a pena, ele é muito completo e vai te ajudar bastante.&lt;/p>
+&lt;p>&lt;img src="https://cdn.hashnode.com/res/hashnode/image/upload/v1626483359586/3AK3FMQhK.png" alt="MySQL Workbench">&lt;/p>
+&lt;hr>
+&lt;h2 id="7-mock">7. Mock&lt;/h2>
+&lt;p>Sempre que estamos desenvolvendo microsserviços, em algum momento vamos nos deparar com alguma dependência externa, e isso pode ser uma grande dor de cabeça.&lt;/p>
+&lt;p>Para ajudar nessa questão, gosto muito de utilizar um &lt;a href="https://www.mock-server.com/#what-is-mockserver">serviço de mock&lt;/a> para desenvolvimento. Além de ajudar muito da hora de codar, pode ser muito útil também para realização de testes, por exemplo. &lt;a href="https://www.mock-server.com/#why-use-mockserver">Aqui&lt;/a> tem mais alguns benefícios de se utilizar.&lt;/p>
+&lt;p>Venho utilizando o &lt;a href="https://www.mock-server.com/">MockServer&lt;/a>, ele é bem customizável, possui inúmeras funcionalidades, é bem fácil de configurar, possui uma &lt;a href="https://www.mock-server.com/mock_server/mockserver_ui.html">UI&lt;/a> para debug bem bacana e a documentação é bem completa.&lt;/p>
+&lt;p>&lt;img src="https://cdn.hashnode.com/res/hashnode/image/upload/v1626709516128/cHznYZYh-.png" alt="MockServer">&lt;/p>
+&lt;p>O &lt;code>compose&lt;/code> dele está &lt;a href="https://github.com/leocarmo/docker-local-stack/blob/main/mock/docker-compose.yaml">aqui&lt;/a>, e dentro da mesma pasta existe um arquivo de configurações, caso você queira mudar essas configurações, basta seguir &lt;a href="https://www.mock-server.com/mock_server/getting_started.html">esta documentação&lt;/a>. Para rodar:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker compose -f mock/docker-compose.yaml up -d
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Após subir os containers, a UI estará disponível em: &lt;a href="http://0.0.0.0:1080/mockserver/dashboard">http://0.0.0.0:1080/mockserver/dashboard&lt;/a>, e caso você não tenha alterado o arquivo de configurações, a rota de testes será:
+&lt;a href="http://0.0.0.0:1080/hello">http://0.0.0.0:1080/hello&lt;/a>&lt;/p>
+&lt;hr>
+&lt;h2 id="8-aws">8. AWS&lt;/h2>
+&lt;p>Com certeza não poderia faltar o &lt;a href="https://github.com/localstack/localstack">AWS LocalStack&lt;/a>. Então se você não conhece esse projeto e usa AWS, recomendo dar uma olhada.&lt;/p>
+&lt;p>Apesar de muito útil, pode dar algum trabalho configurar alguns recursos nele, mas após configurado corretamente, pode salvar muito tempo tentando resolver algo direto pela AWS, além de economizar na conta rsrs.&lt;/p>
+&lt;p>A ideia aqui é deixar um &lt;a href="https://aws.amazon.com/pt/sqs/">SQS&lt;/a> configurado e rodando. Para configurar outros recursos basta dar uma olhada na &lt;a href="https://localstack.cloud/docs/">documentação oficial&lt;/a>.&lt;/p>
+&lt;p>O &lt;code>compose&lt;/code> do SQS está &lt;a href="https://github.com/leocarmo/docker-local-stack/blob/main/databases/docker-compose-postgres.yaml">aqui&lt;/a>. Para iniciar:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker compose -f aws/docker-compose-sqs.yaml up
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Se tudo der certo, você verá a seguinte mensagem no console de que o mock do SQS subiu com sucesso na porta 4566:&lt;/p>
+&lt;p>&lt;img src="https://cdn.hashnode.com/res/hashnode/image/upload/v1626712220281/JAlS_k_VV.png" alt="SQS LocalStack">&lt;/p>
+&lt;blockquote>
+&lt;p>Repare na segunda linha a mensagem: Starting mock SQS service on http port 4566 &amp;hellip;&lt;/p>
+&lt;/blockquote>
+&lt;p>O LocalStack também sobre uma rota de heath check, que fica disponível em &lt;a href="https://0.0.0.0:4566/health">https://0.0.0.0:4566/health&lt;/a>, lá você deveria ver o seguinte json:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-json" data-lang="json">{
+&lt;span style="color:#f92672">&amp;#34;services&amp;#34;&lt;/span>: {
+&lt;span style="color:#f92672">&amp;#34;sqs&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;running&amp;#34;&lt;/span>
+},
+&lt;span style="color:#f92672">&amp;#34;features&amp;#34;&lt;/span>: {
+&lt;span style="color:#f92672">&amp;#34;persistence&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;disabled&amp;#34;&lt;/span>,
+&lt;span style="color:#f92672">&amp;#34;initScripts&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;initialized&amp;#34;&lt;/span>
+}
+}
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Ótimo, com tudo isso funcionando, utilizaremos esse serviço. Primeiro, precisamos criar uma fila, pois só subimos o serviço. Para isso, utilizamos o &lt;a href="https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html">aws-cli&lt;/a>.&lt;/p>
+&lt;p>Criando uma fila no SQS:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">aws --endpoint-url&lt;span style="color:#f92672">=&lt;/span>http://0.0.0.0:4566 sqs create-queue --queue-name my-queue
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Para verificar se a fila foi criada com sucesso utilize o comando:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">aws --endpoint-url&lt;span style="color:#f92672">=&lt;/span>http://0.0.0.0:4566 sqs list-queues
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Agora enviaremos uma mensagem para a fila que criamos:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">aws --endpoint-url&lt;span style="color:#f92672">=&lt;/span>http://0.0.0.0:4566 sqs send-message --queue-url http://0.0.0.0:4566/000000000000/my-queue --message-body &lt;span style="color:#e6db74">&amp;#39;Hello SQS World&amp;#39;&lt;/span>
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Para ler a mensagem que acabamos de criar:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">aws --endpoint-url&lt;span style="color:#f92672">=&lt;/span>http://0.0.0.0:4566 sqs receive-message --queue-url http://0.0.0.0:4566/000000000000/my-queue
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Para acessar a lista completa de comandos do SQS via aws-cli acesse a &lt;a href="https://awscli.amazonaws.com/v2/documentation/api/latest/reference/sqs/index.html#cli-aws-sqs">documentação oficial&lt;/a>.&lt;/p>
+&lt;hr>
+&lt;blockquote>
+&lt;p>Dica: caso voce já tenha uma network criada para suas aplicações, basta &lt;a href="https://docs.docker.com/engine/reference/commandline/network_connect/">conectar&lt;/a> os containers criados aqui com a sua network usando este comando:&lt;/p>
+&lt;/blockquote>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-sh" data-lang="sh">docker network connect my-network redis-single
+&lt;/code>&lt;/pre>&lt;/div>&lt;blockquote>
+&lt;p>Importante: para as stacks em cluster, é preciso conectar cada container na sua network.&lt;/p>
+&lt;/blockquote>
+&lt;hr>
+&lt;p>Basicamente com essa stack muitos dos problemas do dia a dia podem ser resolvidos. Espero que te ajude de alguma forma no seu fluxo de desenvolvimento local.&lt;/p>
+&lt;p>Alguma sugestão de alguma ferramenta que faltou aqui? Deixa nos comentários!&lt;/p></content></item></channel></rss>

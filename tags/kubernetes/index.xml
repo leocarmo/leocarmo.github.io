@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>kubernetes on leocarmo.dev</title><link>/tags/kubernetes/</link><description>Recent content in kubernetes on leocarmo.dev</description><generator>Hugo -- gohugo.io</generator><language>en</language><copyright>leocarmo.dev</copyright><lastBuildDate>Mon, 10 May 2021 19:24:26 -0300</lastBuildDate><atom:link href="/tags/kubernetes/index.xml" rel="self" type="application/rss+xml"/><item><title>Graceful Shutdown com PHP - Evitando data corruption</title><link>/graceful-shutdown-com-php-evitando-data-corruption/</link><pubDate>Mon, 10 May 2021 19:24:26 -0300</pubDate><guid>/graceful-shutdown-com-php-evitando-data-corruption/</guid><description>Quando trabalhamos com processos críticos, seja via script em background ou via o fluxo transacional de APIs, temos algo muito importante para considerar: a possibilidade de interromper um processamento antes que ele termine, causando uma corrupção de dados (data corruption).
+Certo, mas o que isso significa e quais os impactos? Vamos pensar em um fluxo que conhecemos muito bem hoje: as transações em bancos de dados relacionais. Usamos isso quando precisamos garantir que dados sejam inseridos/alterados/deletados em conjunto, garantindo assim a consistência dos mesmos.</description><content>&lt;p>Quando trabalhamos com processos críticos, seja via script em background ou via o fluxo transacional de APIs, temos algo muito importante para considerar: &lt;strong>a possibilidade de interromper um processamento antes que ele termine, causando uma corrupção de dados (data corruption)&lt;/strong>.&lt;/p>
+&lt;hr>
+&lt;h3 id="certo-mas-o-que-isso-significa-e-quais-os-impactos">Certo, mas o que isso significa e quais os impactos?&lt;/h3>
+&lt;p>Vamos pensar em um fluxo que conhecemos muito bem hoje: as transações em bancos de dados relacionais. Usamos isso quando precisamos garantir que dados sejam inseridos/alterados/deletados em conjunto, garantindo assim a consistência dos mesmos. Ou seja, se em algum momento da transação algo der errado, realizamos o rollback, caso contrario, o commit da transação.&lt;/p>
+&lt;p>Com isso em mente, vamos mudar o contexto para um script em background que precisa realizar uma determinada tarefa com vários steps, normalmente um &lt;code>while(true)&lt;/code> que assina um tópico/fila e fica processando sem tempo definido. Mais conhecido como &amp;ldquo;moedor de carne&amp;rdquo; rs…&lt;/p>
+&lt;p>Agora vamos pensar que cada loop demore cerca de 1s para realizar a tarefa e este script está em um container que receberá uma nova versão de código, assim, o mesmo precisará ser destruído e um novo assumirá.&lt;/p>
+&lt;p>No momento do deploy, o container será forçado a desligar e poderá estar no meio de um processamento, que leva cerca de 1s, lembra?&lt;/p>
+&lt;blockquote>
+&lt;p>O que pode acontecer com o que estava sendo feito no loop? Tente pensar antes de continuar!&lt;/p>
+&lt;/blockquote>
+&lt;p>&lt;img src="images/thinking.gif" alt="thinking">&lt;/p>
+&lt;hr>
+&lt;p>Resposta: não sabemos! Ele pode ter forçado o desligamento em qualquer step. Pode ter sido no meio de uma transação de banco onde a mesma vai ficar presa até expirar, seja no envio de dados incompletos para outros serviços, geração de eventos &amp;ldquo;fantasmas&amp;rdquo;, e por aí vai…&lt;/p>
+&lt;p>Evitar essa corrupção de dados é uma tarefa bem simples, basta entender esse fluxo de desligamento e terminar de fazer o que estava sendo feito antes de realmente desligar o serviço. Lembrando que isso também vale para APIs, precisamos terminar uma requisição em andamento antes de desligar o serviço.&lt;/p>
+&lt;hr>
+&lt;h3 id="processo-de-shutdown-no-kubernetes">Processo de shutdown no Kubernetes&lt;/h3>
+&lt;p>Basicamente podemos resumir em dois momentos, primeiro um aviso de desligamento, conhecido como &lt;code>SIGTERM&lt;/code>, e o desligamento forçado, conhecido como &lt;code>SIGKILL&lt;/code>, que será enviado caso o container não tenha terminado após o aviso.&lt;/p>
+&lt;blockquote>
+&lt;p>Caso queira entender um pouco mais sobre estes sinais, &lt;a href="https://major.io/2010/03/18/sigterm-vs-sigkill/">veja este artigo&lt;/a> que explica bem a diferença entre cada um deles.&lt;/p>
+&lt;/blockquote>
+&lt;p>&lt;img src="images/pod-lifecycle.jpeg" alt="pod-lifecycle.jpeg">&lt;/p>
+&lt;p>Podemos ver cada estágio do lifecycle do Pod nesta imagem, onde nosso foco está na última caixinha da direita, onde temos o &lt;code>pre stop hook&lt;/code>, que emite o sinal de &lt;code>SIGTERM&lt;/code> e aguarda o desligamento do container. Veja o &lt;a href="https://www.youtube.com/watch?v=lnAwa8IFaLU">video completo&lt;/a> deste diagrama para mais detalhes.&lt;/p>
+&lt;blockquote>
+&lt;p>Para entender cada detalhe deste processo, você pode acessar a &lt;a href="https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination">documentação oficial&lt;/a>. Caso você não tenha sua arquitetura rodando com essa tecnologia não se preocupe, o processo é similar e existem vários artigos que você pode consultar, o importante é que você entenda o fluxo de shutdown e aplique conforme sua realidade.&lt;/p>
+&lt;/blockquote>
+&lt;p>Sendo assim, o que devemos fazer é &amp;ldquo;escutar&amp;rdquo; esse aviso de desligamento, terminar o que estamos fazendo e desligar o container com a segurança de que nenhum processo estava em andamento, evitando a corrupção dos dados.&lt;/p>
+&lt;p>&lt;img src="images/graceful-shutdown.gif" alt="graceful-shutdown.gif">&lt;/p>
+&lt;hr>
+&lt;h3 id="com-tudo-isso-em-mente-vamos-focar-na-solução">Com tudo isso em mente, vamos focar na solução!&lt;/h3>
+&lt;p>Começando pelo web server, utilizando o &lt;code>php-fpm&lt;/code> esta tarefa é simples. Temos um parâmetro para configurar quanto tempo os &lt;code>child processes&lt;/code> possuem para finalizar o processo atual antes de desligarem:&lt;/p>
+&lt;pre>&lt;code>process_control_timeout = 10s
+&lt;/code>&lt;/pre>&lt;p>Conforme a &lt;a href="https://www.php.net/manual/en/install.fpm.configuration.php#process-control-timeout">documentação oficial&lt;/a>, o valor padrão deste parâmetro é zero, com isso, assim que os &lt;code>child processes&lt;/code> recebem o sinal eles encerram, o que pode ser bastante danoso.&lt;/p>
+&lt;blockquote>
+&lt;p>É importante lembrar que no Kubernetes, depois do alerta, caso o processo não tenha sido encerrado, ele é forçado a encerrar, então o valor deste parâmetro precisa dar match com o tempo máximo de uma requisição processada com sucesso e o tempo de espera do Kubernetes até forçar o desligamento.&lt;/p>
+&lt;/blockquote>
+&lt;hr>
+&lt;h3 id="scripts-de-processamento-em-background-via-php-cli">Scripts de processamento em background, via PHP CLI&lt;/h3>
+&lt;p>Agora vamos falar dos scripts que trabalham em &lt;code>while(true)&lt;/code> e não possuem nada para avisar o loop de que um sinal de desligamento foi enviado.&lt;/p>
+&lt;p>Para resolver este problema, temos uma extensão para o PHP chamada de &lt;code>pcntl&lt;/code> que consegue registrar &lt;em>handlers&lt;/em> para sinais enviados ao processo, ou seja, conseguimos &amp;ldquo;escutar&amp;rdquo; quando o Kubernetes nos avisar que devemos encerrar.&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Importante&lt;/strong>: esta funcionalidade não deve ser habilitada em contextos de web server, exemplo do php-fpm, pois pode ocasionar em comportamentos inesperados. O seu uso correto é para scripts utilizando o PHP CLI.&lt;/p>
+&lt;/blockquote>
+&lt;p>Para facilitar a implementação e utilização desta extensão, criei uma lib bem simples que faz toda essa mágica acontecer:&lt;/p>
+&lt;p>&lt;a href="https://github.com/leocarmo/graceful-shutdown-php">https://github.com/leocarmo/graceful-shutdown-php&lt;/a>&lt;/p>
+&lt;p>Com ela, você consegue garantir que nenhum dado será corrompido caso o desligamento seja necessário e, caso seja necessário, registrar um callback para ser executado antes do desligamento.&lt;/p>
+&lt;p>Se código ficará parecido com este:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-php" data-lang="php">&lt;span style="color:#66d9ef">use&lt;/span> &lt;span style="color:#a6e22e">LeoCarmo\GracefulShutdown\GracefulShutdown&lt;/span>;
+$shutdown &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#66d9ef">new&lt;/span> &lt;span style="color:#a6e22e">GracefulShutdown&lt;/span>();
+&lt;span style="color:#66d9ef">while&lt;/span> (&lt;span style="color:#f92672">!&lt;/span> $shutdown&lt;span style="color:#f92672">-&amp;gt;&lt;/span>&lt;span style="color:#a6e22e">signalReceived&lt;/span>()) {
+&lt;span style="color:#66d9ef">echo&lt;/span> &lt;span style="color:#e6db74">&amp;#39;Start long task...&amp;#39;&lt;/span> &lt;span style="color:#f92672">.&lt;/span> &lt;span style="color:#a6e22e">PHP_EOL&lt;/span>;
+&lt;span style="color:#a6e22e">sleep&lt;/span>(&lt;span style="color:#a6e22e">sleep&lt;/span>(&lt;span style="color:#ae81ff">5&lt;/span>)); &lt;span style="color:#75715e">// --&amp;gt; when a signal is sent, sleep returns the number of seconds left
+&lt;/span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#66d9ef">echo&lt;/span> &lt;span style="color:#e6db74">&amp;#39;End long task...&amp;#39;&lt;/span> &lt;span style="color:#f92672">.&lt;/span> &lt;span style="color:#a6e22e">PHP_EOL&lt;/span>;
+}
+&lt;span style="color:#66d9ef">echo&lt;/span> &lt;span style="color:#e6db74">&amp;#39;Graceful shutdown!&amp;#39;&lt;/span>;
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>Por ora é isso, espero poder te ajudar a construir aplicações mais consistentes e evitar a corrupção de dados, tanto no fluxo de requisições, quanto via scripts. (:&lt;/p></content></item></channel></rss>
