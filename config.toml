@@ -3,6 +3,7 @@ languageCode = "en"
 theme = "terminal"
 paginate = 5
 enableEmoji = true
+disqusShortname = 'leocarmodev'
 
 [params]
   contentTypeName = "post"
